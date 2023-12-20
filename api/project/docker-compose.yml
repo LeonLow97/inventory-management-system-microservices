@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ./../api-gateway
+      dockerfile: ./../api-gateway/Dockerfile
+    restart: always
+    ports:
+      - '80:80'
+
+  authentication-service:
+    build:
+      context: ./../authentication-service
+      dockerfile: ./../authentication-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    ports:
+      - '8001:8001'
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: imsdb
+
+  postgres:
+    image: 'postgres:14.2'
+    ports:
+      - '5432:5432'
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: imsdb
+    volumes:
+      # using volumes instead of bind mounts
+      # - postgres:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+
+volumes:
+  postgres:

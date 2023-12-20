@@ -105,7 +105,7 @@ func RetrieveIssuer(w http.ResponseWriter, req *http.Request) error {
 	cookie, err := req.Cookie("leon-jwt-token")
 	if err != nil {
 		log.Println("req.Cookie:", err)
-		return utils.ApiError{Err: "Internal Server Error", Status: http.StatusInternalServerError}
+		return utils.ApiError{Err: "Unauthorized Access", Status: http.StatusUnauthorized}
 	}
 
 	// Parses the cookie jwt claims using the secret key to verify

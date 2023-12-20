@@ -1,6 +1,40 @@
-# Inventory Management System (IMS)
+## Inventory Management System (IMS)
 
-- An inventory management system (IMS) is crucial for businesses that need to efficiently track and manage their inventory. (primarily working on the IMS for my own online business).
+## Assumptions
+
+## Key Features
+
+- Pagination
+- API Security (rate limiting, IP whitelisting)
+
+## User Groups
+
+## Entity Relationship Diagram
+
+## Microservices Architecture
+
+- gRPC for communication between microservices and MQ (Apache Kafka / RabbitMQ) for Pub-Sub messaging
+
+|Service/Component|Description|
+|---|---|
+|NGINX Production Server|For Production Web Servers|
+|API Gateway / Reverse Proxy|For handling incoming request for forwarding the requests to the respective microservice|
+|Monitoring Service|Using WebSocket to keep track of the health of the microservices|
+|Authentication Service|Using JWT Token to authenticate requests with PostgresSQL Database|
+|Mail Service (2FA, Monitoring Reporting)|Using MailHog in development and using Kafka/RabbitMQ to subscribe to mail events|
+|Logging Service|To store logs (Explore ELK Stack for this)|
+|Inventory Service|To keep track of the count of inventory (Can explore Redis to store the product name, color or size names)|
+|Order Service|To keep track of customer order or sales|
+|Revenue Service|To keep track of the revenue generated from the sales of the inventory|
+
+## DevOps
+
+- Docker
+  - Utilizing `docker-compose.yml` and `Dockerfile` to work with containers in development to ensure the application works similar to Production environment.
+- Kubernetes
+  - Utilizing Ingress Service, Deployment, and Pods k8s Objects with a declarative approach (using `.yml` configuration files) to setup the Kubernetes Cluster to enable scalability and availability.
+- Gitlab CI/CD
+  - Setup local Gitlab Runner to build, test and deploy the application to enable Continuous Integration and Continuous Deployment of the application to Production environment.
 
 ## Objectives
 
@@ -69,4 +103,3 @@
 - Running ALL tests on /src directory
   - `go test -v ./...`
   - `go test ./...`
-
