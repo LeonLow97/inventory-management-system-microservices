@@ -16,7 +16,7 @@ func main() {
 
 	// getting router with gin engine
 	router := app.routes()
-	
+
 	// Using gin to start api gateway server, exit status 1 if fail to start server
 	if err := router.Run(fmt.Sprintf(":%s", gatewayPort)); err != nil {
 		log.Fatal(err)

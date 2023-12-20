@@ -81,3 +81,7 @@ go.mod
 Icon?
 ehthumbs.db
 Thumbs.db
+
+# build files
+**/apiGateway
+**/authApp
