@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (app *Config) handler(urlString string) gin.HandlerFunc {
+func (app *application) handler(urlString string) gin.HandlerFunc {
 	// define URLs for microservices
 	parsedURL, _ := url.Parse(urlString)
 
@@ -24,7 +24,7 @@ func (app *Config) handler(urlString string) gin.HandlerFunc {
 	}
 }
 
-func (app *Config) reverseProxy(address *url.URL) *httputil.ReverseProxy {
+func (app *application) reverseProxy(address *url.URL) *httputil.ReverseProxy {
 	// Create a new reverse proxy
 	proxy := httputil.NewSingleHostReverseProxy(address)
 

@@ -7,12 +7,12 @@ import (
 
 const gatewayPort = "80"
 
-type Config struct {
+type application struct {
 }
 
 func main() {
 	// setup application config
-	app := Config{}
+	app := application{}
 
 	// getting router with gin engine
 	router := app.routes()

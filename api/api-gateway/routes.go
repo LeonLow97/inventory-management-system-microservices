@@ -1,22 +1,35 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
-func (app *Config) routes() *gin.Engine {
+func (app *application) routes() *gin.Engine {
 	router := gin.Default()
 
-	// middleware for IP whitelisting using go gin-gonic
-	router.Use(IPWhitelistMiddleware())
+	router.Use(app.ipWhitelistMiddleware())
+	router.Use(app.rateLimitMiddleware())
 
 	// define handlers for each microservice, HTTP requests will be forwarded to the microservices
 	authenticationHandler := app.handler("http://authentication-service:8001/login")
 	signUpHandler := app.handler("http://authentication-service:8001/signup")
 
+	updateUserHandler := app.handler("http://authentication-service:8001/user")
+	getUsersHandler := app.handler("http://authentication-service:8001/users")
+
+	// for pinging and testing the api gateway
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "OK", "api-gateway": "healthy and running!"})
+	})
+
 	// setting up different paths to handle requests for each microservice
 	router.POST("/authenticate", authenticationHandler)
 	router.POST("/signup", signUpHandler)
+
+	router.PATCH("/user", updateUserHandler)
+	router.GET("/users", getUsersHandler)
 
 	return router
 }

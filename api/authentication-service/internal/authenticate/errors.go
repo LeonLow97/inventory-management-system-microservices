@@ -9,7 +9,7 @@ var (
 )
 
 var (
-	ErrInvalidEmailFormat = errors.New("invalid email format")
+	ErrInvalidEmailFormat    = errors.New("invalid email format")
 	ErrInvalidPasswordFormat = errors.New("invalid password format")
-	ErrExistingUserFound = errors.New("existing user found")
+	ErrExistingUserFound     = errors.New("existing user found")
 )
