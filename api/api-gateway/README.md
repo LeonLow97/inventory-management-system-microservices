@@ -6,7 +6,7 @@
 - [ ] Caching (Redis)
 - [ ] Logging (ELK Stack)
 - [ ] Monitoring (Prometheus, Grafana, Datadog)
-- [ ] gRPC Communication with Microservices
+- [x] gRPC Communication with Microservices
 
 ## Golang Framework and Resources
 

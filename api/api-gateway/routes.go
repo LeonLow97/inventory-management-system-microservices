@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const AUTHENTICATION_SERVICE_URL = "authentication-service:8001"
+
 func (app *application) routes() *gin.Engine {
 	router := gin.Default()
 
@@ -13,11 +15,11 @@ func (app *application) routes() *gin.Engine {
 	router.Use(app.rateLimitMiddleware())
 
 	// gRPC Communication with Authentication service
-	authenticationHandlerGRPC := app.gRPCAuthenticationHandler("authentication-service:8001")
-	signUpHandlerGRPC := app.gRPCSignUpHandler("authentication-service:8001")
+	authenticationHandlerGRPC := app.gRPCAuthenticationHandler(AUTHENTICATION_SERVICE_URL)
+	signUpHandlerGRPC := app.gRPCSignUpHandler(AUTHENTICATION_SERVICE_URL)
 
 	// updateUserHandler := app.handler("http://authentication-service:8001/user")
-	// getUsersHandler := app.handler("http://authentication-service:8001/users")
+	getUsersHandlerGRPC := app.grpcGetUsersHandler(AUTHENTICATION_SERVICE_URL)
 
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
@@ -29,7 +31,7 @@ func (app *application) routes() *gin.Engine {
 	router.POST("/signup", signUpHandlerGRPC)
 
 	// router.PATCH("/user", updateUserHandler)
-	// router.GET("/users", getUsersHandler)
+	router.GET("/users", getUsersHandlerGRPC)
 
 	return router
 }

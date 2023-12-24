@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -84,6 +85,7 @@ func (r PostgresRepo) GetUsers() (*[]User, error) {
 	var users []User
 
 	if err := r.db.SelectContext(ctx, &users, query); err != nil {
+		log.Println("Error in get users", err)
 		return nil, err
 	}
 

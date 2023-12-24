@@ -19,11 +19,11 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/LeonLow97/internal/authenticate"
+	"github.com/LeonLow97/internal/users"
 	pb "github.com/LeonLow97/proto"
 )
 
 const authenticationPort = "8001"
-const tempPort = "8002"
 
 func main() {
 	db, err := connectToDB()
@@ -35,7 +35,7 @@ func main() {
 
 	r := routes(db)
 	log.Println("Auth Service is running on port", authenticationPort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", tempPort), r); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", "8002"), r); err != nil {
 		log.Fatalf("Failed to start authentication microservice with error %v", err)
 	}
 }
@@ -47,12 +47,15 @@ func initiateGRPCServer(db *sqlx.DB) {
 	}
 
 	authService := authenticate.NewService(authenticate.NewRepo(db))
+	userService := users.NewService(users.NewRepo(db))
 
 	// creates a new grpc server
 	grpcServer := grpc.NewServer()
 	authServiceServer := authenticate.NewAuthenticateGRPCHandler(authService)
+	usersServiceServer := users.NewUsersGRPCHandler(userService)
 
 	pb.RegisterAuthenticationServiceServer(grpcServer, authServiceServer)
+	pb.RegisterUserServiceServer(grpcServer, usersServiceServer)
 	log.Printf("Started authentication gRPC server at %v", lis.Addr())
 
 	if err := grpcServer.Serve(lis); err != nil {

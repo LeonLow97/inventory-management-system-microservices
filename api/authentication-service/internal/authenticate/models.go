@@ -6,8 +6,8 @@ import (
 )
 
 type LoginRequestDTO struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string
+	Password string
 }
 
 type User struct {
@@ -28,11 +28,11 @@ func loginSanitize(req *LoginRequestDTO) {
 }
 
 type SignUpRequestDTO struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	Email     string `json:"email"`
+	FirstName string
+	LastName  string
+	Username  string
+	Password  string
+	Email     string
 }
 
 func signUpSanitize(req *SignUpRequestDTO) {

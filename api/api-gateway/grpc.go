@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerFunc {
@@ -128,6 +129,43 @@ func (app *application) gRPCSignUpHandler(urlString string) gin.HandlerFunc {
 	}
 }
 
+func (app *application) grpcGetUsersHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newUsersGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		resp, err := grpcClient.GetUsers(ctx, &empty.Empty{})
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		var usersData []map[string]interface{}
+		for _, user := range resp.Users {
+			userData := map[string]interface{}{
+				"first_name": user.FirstName,
+				"last_name":  user.LastName,
+				"username":   user.Username,
+				"email":      user.Email,
+				"active":     user.Active,
+				"admin":      user.Admin,
+			}
+			usersData = append(usersData, userData)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status": http.StatusOK,
+			"users":  usersData,
+		})
+	}
+}
+
 func newAuthenticationGRPCClient(urlString string) (pb.AuthenticationServiceClient, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(urlString, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -135,5 +173,15 @@ func newAuthenticationGRPCClient(urlString string) (pb.AuthenticationServiceClie
 	}
 
 	client := pb.NewAuthenticationServiceClient(conn)
+	return client, conn, nil
+}
+
+func newUsersGRPCClient(urlString string) (pb.UserServiceClient, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(urlString, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, fmt.Errorf("error dialing users-service: %v", err)
+	}
+
+	client := pb.NewUserServiceClient(conn)
 	return client, conn, nil
 }
