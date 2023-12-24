@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -45,8 +47,22 @@ func modifyResponse() func(response *http.Response) error {
 	return func(response *http.Response) error {
 		if response.StatusCode == http.StatusInternalServerError {
 			log.Println("Something went wrong!! Internal Server Error!!")
-		} else if response.StatusCode == 200 {
+		} else if response.StatusCode == http.StatusOK {
 			log.Println("Woohoo it worked!")
+		} else {
+			// log via gRPC to logger service
+			// Read the response body
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				// Handle error reading the response body
+				return err
+			}
+
+			// Log the received JSON response
+			log.Println("Received JSON response:", string(body))
+
+			// Re-assign the response body with the original content
+			response.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		return nil
 	}

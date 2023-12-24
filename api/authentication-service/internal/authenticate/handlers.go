@@ -20,7 +20,7 @@ func NewAuthenticateHandler(s Service) *authenticateHandler {
 }
 
 func (h authenticateHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var loginRequest LoginRequest
+	var loginRequest LoginRequestDTO
 	if err := utils.ReadJSON(w, r, &loginRequest); err != nil {
 		log.Println(err)
 		utils.ErrorJSON(w, http.StatusInternalServerError)
@@ -42,7 +42,7 @@ func (h authenticateHandler) Login(w http.ResponseWriter, r *http.Request) {
 	loginSanitize(&loginRequest)
 
 	// call Login service (business logic)
-	user, cookie, err := h.service.Login(loginRequest)
+	user, _, err := h.service.Login(loginRequest)
 	switch {
 	case errors.Is(err, ErrInvalidCredentials), errors.Is(err, ErrInactiveUser), errors.Is(err, ErrNotFound):
 		utils.ErrorJSON(w, http.StatusUnauthorized)
@@ -50,7 +50,7 @@ func (h authenticateHandler) Login(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorJSON(w, http.StatusInternalServerError)
 	default:
 		// set cookie with the signed jwt token in browser
-		http.SetCookie(w, cookie)
+		// http.SetCookie(w, cookie)
 		_ = utils.WriteJSON(w, http.StatusOK, user)
 	}
 }

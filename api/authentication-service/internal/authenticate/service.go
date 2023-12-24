@@ -2,7 +2,6 @@ package authenticate
 
 import (
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/LeonLow97/utils"
@@ -11,7 +10,7 @@ import (
 )
 
 type Service interface {
-	Login(req LoginRequest) (*User, *http.Cookie, error)
+	Login(req LoginRequestDTO) (*User, string, error)
 	SignUp(req SignUpRequest) error
 }
 
@@ -25,46 +24,46 @@ func NewService(r Repository) Service {
 	}
 }
 
-func (s service) Login(req LoginRequest) (*User, *http.Cookie, error) {
+func (s service) Login(req LoginRequestDTO) (*User, string, error) {
 	// check if username exists
 	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {
-		return nil, nil, err
+		return nil, "nil", err
 	}
 
 	// compare password with hashed password in db
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		switch {
 		case err == bcrypt.ErrMismatchedHashAndPassword, err == bcrypt.ErrHashTooShort:
-			return nil, nil, ErrInvalidCredentials
+			return nil, "", ErrInvalidCredentials
 		default:
-			return nil, nil, err
+			return nil, "", err
 		}
 	}
 
 	// check account status (active / inactive)
 	if user.Active == 0 {
-		return nil, nil, ErrInactiveUser
+		return nil, "", ErrInactiveUser
 	}
 
 	// generate jwt token for user
 	token, err := generateJWTToken(user)
 	if err != nil {
-		return &user, nil, err
+		return &user, "", err
 	}
 
 	// set cookie with jwt token
-	cookie := &http.Cookie{
-		Name:     "ims-token",
-		Value:    token,
-		MaxAge:   3600,
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
-		HttpOnly: true,
-	}
+	// cookie := &http.Cookie{
+	// 	Name:     "ims-token",
+	// 	Value:    token,
+	// 	MaxAge:   3600,
+	// 	Path:     "/",
+	// 	Domain:   "localhost",
+	// 	Secure:   false,
+	// 	HttpOnly: true,
+	// }
 
-	return &user, cookie, nil
+	return &user, token, nil
 }
 
 func (s service) SignUp(req SignUpRequest) error {

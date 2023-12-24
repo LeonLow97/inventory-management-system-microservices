@@ -8,6 +8,8 @@ services:
     restart: always
     ports:
       - '80:80'
+    depends_on:
+      - authentication-service
 
   authentication-service:
     build:

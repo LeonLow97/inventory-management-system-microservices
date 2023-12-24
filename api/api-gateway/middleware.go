@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -42,7 +41,7 @@ func (app *application) rateLimitMiddleware() gin.HandlerFunc {
 	var (
 		// using another mutex so it does not block `clients` map during cleanup
 		// in case there are many ip addresses in the map and the for loop takes a long time to execute
-		cleanUpMu       sync.Mutex 
+		cleanUpMu       sync.Mutex
 		ipRateLimiterMu sync.Mutex
 		// key is client IP Address
 		clients = make(map[string]*client)
@@ -89,8 +88,6 @@ func (app *application) rateLimitMiddleware() gin.HandlerFunc {
 		clients[ip].lastSeen = time.Now()
 
 		// check if the request is allowed
-		fmt.Println(clients[ip].limiter.Allow())
-		fmt.Println(ip)
 		if !clients[ip].limiter.Allow() {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Too Many Requests"})
 			return

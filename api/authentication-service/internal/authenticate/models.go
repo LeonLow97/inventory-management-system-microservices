@@ -5,24 +5,24 @@ import (
 	"time"
 )
 
-type LoginRequest struct {
-	Username string `json:"username" validate:"required,min=5,max=50"`
-	Password string `json:"password" validate:"required,min=8,max=20"`
+type LoginRequestDTO struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type User struct {
-	FirstName string    `json:"firstName" db:"first_name"`
-	LastName  string    `json:"lastName" db:"last_name"`
-	Username  string    `json:"username" db:"username"`
-	Password  string    `json:"-" db:"password"`
-	Email     string    `json:"email" db:"email"`
-	Active    int       `json:"active" db:"active"`
-	Admin     int       `json:"admin" db:"admin"`
-	UpdatedAt time.Time `json:"-" db:"updated_at"`
-	CreatedAt time.Time `json:"-" db:"created_at"`
+	FirstName string    `db:"first_name"`
+	LastName  string    `db:"last_name"`
+	Username  string    `db:"username"`
+	Password  string    `db:"password"`
+	Email     string    `db:"email"`
+	Active    int       `db:"active"`
+	Admin     int       `db:"admin"`
+	UpdatedAt time.Time `db:"updated_at"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
-func loginSanitize(req *LoginRequest) {
+func loginSanitize(req *LoginRequestDTO) {
 	req.Username = strings.TrimSpace(req.Username)
 	req.Password = strings.TrimSpace(req.Password)
 }

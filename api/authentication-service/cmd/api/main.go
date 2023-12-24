@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -11,13 +12,18 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"google.golang.org/grpc"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"github.com/LeonLow97/internal/authenticate"
+	pb "github.com/LeonLow97/proto"
 )
 
 const authenticationPort = "8001"
+const tempPort = "8002"
 
 func main() {
 	db, err := connectToDB()
@@ -25,10 +31,33 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	r := routes(db)
+	go initiateGRPCServer(db)
 
+	r := routes(db)
 	log.Println("Auth Service is running on port", authenticationPort)
-	http.ListenAndServe(fmt.Sprintf(":%s", authenticationPort), r)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", tempPort), r); err != nil {
+		log.Fatalf("Failed to start authentication microservice with error %v", err)
+	}
+}
+
+func initiateGRPCServer(db *sqlx.DB) {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", authenticationPort))
+	if err != nil {
+		log.Fatalf("Failed to start the grpc server with error: %v", err)
+	}
+
+	authService := authenticate.NewService(authenticate.NewRepo(db))
+
+	// creates a new grpc server
+	grpcServer := grpc.NewServer()
+	authServiceServer := authenticate.NewAuthenticateGRPCHandler(authService)
+
+	pb.RegisterAuthenticationServiceServer(grpcServer, authServiceServer)
+	log.Printf("Started authentication gRPC server at %v", lis.Addr())
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to start authentication gRPC server with error %v", err)
+	}
 }
 
 func connectToDB() (*sqlx.DB, error) {
