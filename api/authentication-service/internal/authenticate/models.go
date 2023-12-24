@@ -27,15 +27,15 @@ func loginSanitize(req *LoginRequestDTO) {
 	req.Password = strings.TrimSpace(req.Password)
 }
 
-type SignUpRequest struct {
+type SignUpRequestDTO struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
-	Username  string `json:"username" validate:"required,min=5,max=50"`
-	Password  string `json:"password" validate:"required,min=8,max=20"`
-	Email     string `json:"email" validate:"required,min=10,max=100"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Email     string `json:"email"`
 }
 
-func signUpSanitize(req *SignUpRequest) {
+func signUpSanitize(req *SignUpRequestDTO) {
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 	req.Username = strings.TrimSpace(req.Username)

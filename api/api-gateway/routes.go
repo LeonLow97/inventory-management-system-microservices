@@ -13,10 +13,8 @@ func (app *application) routes() *gin.Engine {
 	router.Use(app.rateLimitMiddleware())
 
 	// gRPC Communication with Authentication service
-	// define handlers for each microservice, HTTP requests will be forwarded to the microservices
-	// authenticationHandler := app.handler("http://authentication-service:8001/login")
 	authenticationHandlerGRPC := app.gRPCAuthenticationHandler("authentication-service:8001")
-	// signUpHandler := app.handler("http://authentication-service:8001/signup")
+	signUpHandlerGRPC := app.gRPCSignUpHandler("authentication-service:8001")
 
 	// updateUserHandler := app.handler("http://authentication-service:8001/user")
 	// getUsersHandler := app.handler("http://authentication-service:8001/users")
@@ -28,7 +26,7 @@ func (app *application) routes() *gin.Engine {
 
 	// setting up different paths to handle requests for each microservice
 	router.POST("/authenticate", authenticationHandlerGRPC)
-	// router.POST("/signup", signUpHandler)
+	router.POST("/signup", signUpHandlerGRPC)
 
 	// router.PATCH("/user", updateUserHandler)
 	// router.GET("/users", getUsersHandler)

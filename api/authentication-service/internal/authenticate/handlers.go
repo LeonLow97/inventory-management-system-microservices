@@ -56,7 +56,7 @@ func (h authenticateHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authenticateHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var signUpRequest SignUpRequest
+	var signUpRequest SignUpRequestDTO
 	if err := utils.ReadJSON(w, r, &signUpRequest); err != nil {
 		log.Println(err)
 		utils.ErrorJSON(w, http.StatusInternalServerError)

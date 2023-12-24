@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	Login(req LoginRequestDTO) (*User, string, error)
-	SignUp(req SignUpRequest) error
+	SignUp(req SignUpRequestDTO) error
 }
 
 type service struct {
@@ -52,21 +52,10 @@ func (s service) Login(req LoginRequestDTO) (*User, string, error) {
 		return &user, "", err
 	}
 
-	// set cookie with jwt token
-	// cookie := &http.Cookie{
-	// 	Name:     "ims-token",
-	// 	Value:    token,
-	// 	MaxAge:   3600,
-	// 	Path:     "/",
-	// 	Domain:   "localhost",
-	// 	Secure:   false,
-	// 	HttpOnly: true,
-	// }
-
 	return &user, token, nil
 }
 
-func (s service) SignUp(req SignUpRequest) error {
+func (s service) SignUp(req SignUpRequestDTO) error {
 	// check format of email address
 	if !utils.IsValidEmail(req.Email) {
 		return ErrInvalidEmailFormat

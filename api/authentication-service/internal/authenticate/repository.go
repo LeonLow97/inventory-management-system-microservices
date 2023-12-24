@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	GetUserByUsername(username string) (User, error)
 	GetUserCountByUsername(username string) (int, error)
-	InsertOneUser(user SignUpRequest) error
+	InsertOneUser(user SignUpRequestDTO) error
 }
 
 type PostgresRepo struct {
@@ -66,7 +66,7 @@ func (r PostgresRepo) GetUserCountByUsername(username string) (int, error) {
 	return count, nil
 }
 
-func (r PostgresRepo) InsertOneUser(user SignUpRequest) error {
+func (r PostgresRepo) InsertOneUser(user SignUpRequestDTO) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 

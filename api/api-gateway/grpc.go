@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/LeonLow97/models"
 	pb "github.com/LeonLow97/proto"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -13,25 +15,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type AuthRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		conn, err := grpc.Dial(urlString, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpcClient, _, err := newAuthenticationGRPCClient(urlString)
 		if err != nil {
-			log.Fatalf("Error dialing logger-service: %v", err)
-			return
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 		}
-		defer conn.Close()
 
-		client := pb.NewAuthenticationServiceClient(conn)
-
-		var auth AuthRequest
+		var req models.AuthRequest
 		// decode JSON request into struct (HTTP/1.1)
-		if err := c.BindJSON(&auth); err != nil {
+		if err := c.BindJSON(&req); err != nil {
 			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
 			return
@@ -41,15 +34,17 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 		defer cancel()
 
 		// sending grpc request to grpc authenticate server
-		resp, err := client.Authenticate(ctx, &pb.AuthRequest{
-			Username: auth.Username,
-			Password: auth.Password,
+		resp, err := grpcClient.Authenticate(ctx, &pb.AuthRequest{
+			Username: req.Username,
+			Password: req.Password,
 		})
 		if err != nil {
 			if status, ok := status.FromError(err); ok {
 				errorCode := status.Code()
-				log.Printf("Authenticate grpc received error code %d", int32(errorCode))
+				log.Printf("Authenticate grpc received error code %d with err %v", int32(errorCode), err)
 				switch int32(errorCode) {
+				case 3:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
 				case 16:
 					c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Invalid Credentials. Please try again."})
 				default:
@@ -63,7 +58,7 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 		}
 
 		cookie := &http.Cookie{
-			Name:     "ims-token-oiweqj",
+			Name:     "ims-token",
 			Value:    resp.Token,
 			MaxAge:   3600,
 			Path:     "/",
@@ -82,4 +77,63 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 			"admin":      resp.Admin,
 		})
 	}
+}
+
+func (app *application) gRPCSignUpHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newAuthenticationGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+		}
+
+		var req models.SignUpRequest
+		// decode JSON request into struct (HTTP/1.1)
+		if err := c.BindJSON(&req); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		// sending grpc request to grpc authenticate server
+		resp, err := grpcClient.SignUp(ctx, &pb.SignUpRequest{
+			FirstName: req.FirstName,
+			LastName:  req.LastName,
+			Username:  req.Username,
+			Password:  req.Password,
+			Email:     req.Email,
+		})
+		if err != nil {
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				log.Printf("SignUp grpc received error code %d with err %v", int32(errorCode), err)
+				switch int32(errorCode) {
+				case 3:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				case 6:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Username %s has been taken.", req.Username)})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			} else {
+				log.Println("Unable to retrieve error status")
+				return
+			}
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"status": "Created", "message": fmt.Sprintf("Successfully created user %s", resp.Username)})
+	}
+}
+
+func newAuthenticationGRPCClient(urlString string) (pb.AuthenticationServiceClient, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(urlString, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, fmt.Errorf("error dialing authentication-service: %v", err)
+	}
+
+	client := pb.NewAuthenticationServiceClient(conn)
+	return client, conn, nil
 }
