@@ -33,11 +33,15 @@ func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 	if req.Username == "" || len(req.Username) < 5 || len(req.Username) > 50 {
 		return nil, status.Error(codes.InvalidArgument, "Username length did not meet requirements.")
 	}
-	if req.Password == "" || len(req.Password) < 8 || len(req.Password) > 20 {
-		return nil, status.Error(codes.InvalidArgument, "Password length did not meet requirements.")
+	if len(req.Password) > 0 {
+		if len(req.Password) < 8 || len(req.Password) > 20 {
+			return nil, status.Error(codes.InvalidArgument, "Password length did not meet requirements.")
+		}
 	}
-	if req.Email == "" || len(req.Email) < 10 || len(req.Email) > 100 {
-		return nil, status.Error(codes.InvalidArgument, "Email length did not meet requirements.")
+	if len(req.Email) > 0 {
+		if len(req.Email) < 10 || len(req.Email) > 100 {
+			return nil, status.Error(codes.InvalidArgument, "Email length did not meet requirements.")
+		}
 	}
 
 	updateUserDTO := &UpdateUserRequestDTO{
@@ -56,7 +60,11 @@ func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 	case errors.Is(err, ErrSameValue):
 		log.Println(err.Error())
 		return nil, status.Error(codes.InvalidArgument, "Update of same value is not allowed.")
+	case errors.Is(err, ErrInvalidPasswordFormat):
+		log.Println(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "Invalid password format. Please try again.")
 	case err != nil:
+		log.Println(err)
 		return nil, status.Error(codes.Internal, "Internal Server Error")
 	default:
 		return &empty.Empty{}, nil

@@ -55,7 +55,12 @@ func (r PostgresRepo) UpdateUserByUsername(req UpdateUserRequestDTO) error {
 
 	query := `
 		UPDATE users
-		SET first_name = $1, last_name = $2, password = $3, email = $4, updated_at = $5
+		SET 
+			first_name = COALESCE(NULLIF($1, ''), first_name),
+			last_name = COALESCE(NULLIF($2, ''), last_name),
+			password = COALESCE(NULLIF($3, ''), password),
+			email = COALESCE(NULLIF($4, ''), email),
+			updated_at = $5
 		WHERE username = $6;
 	`
 

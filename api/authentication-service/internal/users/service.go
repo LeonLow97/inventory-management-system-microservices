@@ -1,6 +1,9 @@
 package users
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/LeonLow97/utils"
+	"golang.org/x/crypto/bcrypt"
+)
 
 type Service interface {
 	UpdateUser(req UpdateUserRequestDTO) error
@@ -28,6 +31,21 @@ func (s service) UpdateUser(req UpdateUserRequestDTO) error {
 	if req.FirstName == user.FirstName || req.LastName == user.LastName || req.Email == user.Email {
 		return ErrSameValue
 	}
+
+	// check if password is the same as previous
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		if err != bcrypt.ErrMismatchedHashAndPassword {
+			return err
+		}
+	} else {
+		return ErrSameValue
+	}
+
+	// check if password contains at least 1 uppercase, lowercase, numeric and special character
+	if !utils.IsValidPassword(req.Password) {
+		return ErrInvalidPasswordFormat
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err

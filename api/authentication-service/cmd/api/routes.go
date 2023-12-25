@@ -24,7 +24,7 @@ func routes(db *sqlx.DB) http.Handler {
 
 	userRepo := users.NewRepo(db)
 	userService := users.NewService(userRepo)
-	users.NewUserHandler(userService)
+	users.NewUsersGRPCHandler(userService)
 
 	return r
 }
