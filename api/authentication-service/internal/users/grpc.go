@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	pb "github.com/LeonLow97/proto"
@@ -22,9 +23,44 @@ func NewUsersGRPCHandler(s Service) *usersGRPCServer {
 }
 
 func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*empty.Empty, error) {
-	log.Println(req)
+	// Validate the fields manually for gRPC requests, unable to validator golang package
+	if len(req.FirstName) > 50 {
+		return nil, status.Error(codes.InvalidArgument, "LastName length did not meet requirements.")
+	}
+	if len(req.LastName) > 50 {
+		return nil, status.Error(codes.InvalidArgument, "FirstName length did not meet requirements.")
+	}
+	if req.Username == "" || len(req.Username) < 5 || len(req.Username) > 50 {
+		return nil, status.Error(codes.InvalidArgument, "Username length did not meet requirements.")
+	}
+	if req.Password == "" || len(req.Password) < 8 || len(req.Password) > 20 {
+		return nil, status.Error(codes.InvalidArgument, "Password length did not meet requirements.")
+	}
+	if req.Email == "" || len(req.Email) < 10 || len(req.Email) > 100 {
+		return nil, status.Error(codes.InvalidArgument, "Email length did not meet requirements.")
+	}
 
-	return &empty.Empty{}, nil
+	updateUserDTO := &UpdateUserRequestDTO{
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Username:  req.Username,
+		Password:  req.Password,
+		Email:     req.Email,
+	}
+
+	// sanitize data
+	updateUserSanitize(updateUserDTO)
+
+	err := s.service.UpdateUser(*updateUserDTO)
+	switch {
+	case errors.Is(err, ErrSameValue):
+		log.Println(err.Error())
+		return nil, status.Error(codes.InvalidArgument, "Update of same value is not allowed.")
+	case err != nil:
+		return nil, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &empty.Empty{}, nil
+	}
 }
 
 func (s *usersGRPCServer) GetUsers(ctx context.Context, empty *empty.Empty) (*pb.GetUsersResponse, error) {

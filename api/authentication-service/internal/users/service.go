@@ -3,7 +3,7 @@ package users
 import "golang.org/x/crypto/bcrypt"
 
 type Service interface {
-	UpdateUser(req UpdateUserRequest) error
+	UpdateUser(req UpdateUserRequestDTO) error
 	GetUsers() (*[]User, error)
 }
 
@@ -17,7 +17,7 @@ func NewService(r Repository) Service {
 	}
 }
 
-func (s service) UpdateUser(req UpdateUserRequest) error {
+func (s service) UpdateUser(req UpdateUserRequestDTO) error {
 	// check if username exists
 	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {

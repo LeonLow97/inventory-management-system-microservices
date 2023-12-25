@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type UpdateUserRequest struct {
+type UpdateUserRequestDTO struct {
 	FirstName string
 	LastName  string
 	Username  string
@@ -13,7 +13,7 @@ type UpdateUserRequest struct {
 	Email     string
 }
 
-func updateUserSanitize(req *UpdateUserRequest) {
+func updateUserSanitize(req *UpdateUserRequestDTO) {
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 	req.Username = strings.TrimSpace(req.Username)

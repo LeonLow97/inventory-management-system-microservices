@@ -18,7 +18,7 @@ func (app *application) routes() *gin.Engine {
 	authenticationHandlerGRPC := app.gRPCAuthenticationHandler(AUTHENTICATION_SERVICE_URL)
 	signUpHandlerGRPC := app.gRPCSignUpHandler(AUTHENTICATION_SERVICE_URL)
 
-	// updateUserHandler := app.handler("http://authentication-service:8001/user")
+	updateUserHandlerGRPC := app.grpcUpdateUserHandler(AUTHENTICATION_SERVICE_URL)
 	getUsersHandlerGRPC := app.grpcGetUsersHandler(AUTHENTICATION_SERVICE_URL)
 
 	// for pinging and testing the api gateway
@@ -30,7 +30,7 @@ func (app *application) routes() *gin.Engine {
 	router.POST("/authenticate", authenticationHandlerGRPC)
 	router.POST("/signup", signUpHandlerGRPC)
 
-	// router.PATCH("/user", updateUserHandler)
+	router.PATCH("/user", updateUserHandlerGRPC)
 	router.GET("/users", getUsersHandlerGRPC)
 
 	return router

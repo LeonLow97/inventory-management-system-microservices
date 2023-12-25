@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -146,23 +148,73 @@ func (app *application) grpcGetUsersHandler(urlString string) gin.HandlerFunc {
 			return
 		}
 
-		var usersData []map[string]interface{}
-		for _, user := range resp.Users {
-			userData := map[string]interface{}{
-				"first_name": user.FirstName,
-				"last_name":  user.LastName,
-				"username":   user.Username,
-				"email":      user.Email,
-				"active":     user.Active,
-				"admin":      user.Admin,
-			}
-			usersData = append(usersData, userData)
+		// convert protocol buffers message `resp` into JSON byte slice `b` while
+		// specifying the use of protocol buffers field names for JSON serialization
+		b, err := protojson.MarshalOptions{
+			UseProtoNames: true,
+		}.Marshal(resp)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		// Unmarshal the gRPC response into a map[string]interface{} to avoid double-escaping
+		var responseData map[string]interface{}
+		err = json.Unmarshal(b, &responseData)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"status": http.StatusOK,
-			"users":  usersData,
+			"users":  responseData,
 		})
+	}
+}
+
+func (app *application) grpcUpdateUserHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newUsersGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+		}
+
+		var req models.UpdateUserRequest
+		if err := c.BindJSON(&req); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		_, err = grpcClient.UpdateUser(ctx, &pb.UpdateUserRequest{
+			FirstName: req.FirstName,
+			LastName:  req.LastName,
+			Username:  req.Username,
+			Password:  req.Password,
+			Email:     req.Email,
+		})
+		if err != nil {
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				switch int32(errorCode) {
+				case 3:
+					log.Println(err)
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				default:
+					log.Println(err)
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			}
+		}
+
+		c.JSON(http.StatusNoContent, gin.H{})
 	}
 }
 

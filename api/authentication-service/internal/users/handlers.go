@@ -19,7 +19,7 @@ func NewUserHandler(s Service) *userHandler {
 }
 
 func (h userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var updateUserReq UpdateUserRequest
+	var updateUserReq UpdateUserRequestDTO
 	if err := utils.ReadJSON(w, r, &updateUserReq); err != nil {
 		log.Println(err)
 		utils.ErrorJSON(w, http.StatusInternalServerError)

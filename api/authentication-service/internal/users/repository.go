@@ -11,7 +11,7 @@ import (
 
 type Repository interface {
 	GetUserByUsername(username string) (User, error)
-	UpdateUserByUsername(req UpdateUserRequest) error
+	UpdateUserByUsername(req UpdateUserRequestDTO) error
 	GetUsers() (*[]User, error)
 }
 
@@ -49,7 +49,7 @@ func (r PostgresRepo) GetUserByUsername(username string) (User, error) {
 	return user, nil
 }
 
-func (r PostgresRepo) UpdateUserByUsername(req UpdateUserRequest) error {
+func (r PostgresRepo) UpdateUserByUsername(req UpdateUserRequestDTO) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
