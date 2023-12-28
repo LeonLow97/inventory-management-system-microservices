@@ -16,7 +16,7 @@ services:
       context: ./../authentication-service
       dockerfile: ./../authentication-service/Dockerfile
     depends_on:
-      postgres:
+      authentication-postgres:
         condition: service_healthy
     restart: always
     ports:
@@ -25,13 +25,14 @@ services:
       mode: replicated
       replicas: 1
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: authentication-postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: authentication-postgres
       POSTGRES_PORT: '5432'
       POSTGRES_DB: imsdb
+      SERVICE_PORT: '8001'
 
-  postgres:
+  authentication-postgres:
     image: 'postgres:14.2'
     ports:
       - '5432:5432'
@@ -40,17 +41,61 @@ services:
       mode: replicated
       replicas: 1
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: authentication-postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: imsdb
     volumes:
       # using volumes instead of bind mounts
       # - postgres:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
       timeout: 2s
 
+  inventory-service:
+    build:
+      context: ./../inventory-service
+      dockerfile: ./../inventory-service/Dockerfile
+    depends_on:
+      inventory-mysql:
+        condition: service_healthy
+    restart: always
+    ports:
+      - '8002:8002'
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      MYSQL_USER: inventory-mysql
+      MYSQL_PASSWORD: password
+      MYSQL_HOST: inventory-mysql
+      MYSQL_PORT: '3306'
+      MYSQL_DATABASE: imsdb
+      SERVICE_PORT: '8002'
+
+  inventory-mysql:
+    image: 'mysql:latest'
+    ports:
+      - '3306:3306'
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      MYSQL_ROOT_PASSWORD: secret-password
+      MYSQL_USER: inventory-mysql
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: imsdb
+    volumes:
+      # using volumes instead of bind mounts
+      # - mysql:/var/lib/mysql
+      - ./init-db/init-inventory-db.sql:/docker-entrypoint-initdb.d/init-inventory-db.sql
+    healthcheck:
+      test: mysqladmin ping -u$$MYSQL_USER -p$$MYSQL_PASSWORD
+      interval: 10s
+      timeout: 2s
+
 volumes:
   postgres:
+  mysql:

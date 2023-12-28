@@ -23,25 +23,33 @@ import (
 	pb "github.com/LeonLow97/proto"
 )
 
-const authenticationPort = "8001"
+var authenticationServicePort = os.Getenv("SERVICE_PORT")
+
+type application struct {
+
+}
 
 func main() {
-	db, err := connectToDB()
+	app := application{
+
+	}
+
+	db, err := app.connectToDB()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	go initiateGRPCServer(db)
+	go app.initiateGRPCServer(db)
 
-	r := routes(db)
-	log.Println("Auth Service is running on port", authenticationPort)
+	r := app.routes(db)
+	log.Println("Auth Service is running on port", authenticationServicePort)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", "8002"), r); err != nil {
 		log.Fatalf("Failed to start authentication microservice with error %v", err)
 	}
 }
 
-func initiateGRPCServer(db *sqlx.DB) {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", authenticationPort))
+func (app *application) initiateGRPCServer(db *sqlx.DB) {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", authenticationServicePort))
 	if err != nil {
 		log.Fatalf("Failed to start the grpc server with error: %v", err)
 	}
@@ -63,7 +71,7 @@ func initiateGRPCServer(db *sqlx.DB) {
 	}
 }
 
-func connectToDB() (*sqlx.DB, error) {
+func (app *application) connectToDB() (*sqlx.DB, error) {
 	// environment := "development"
 	// var databaseURL string
 

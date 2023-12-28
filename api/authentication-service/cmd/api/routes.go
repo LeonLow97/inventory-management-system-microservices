@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func routes(db *sqlx.DB) http.Handler {
+func (app *application) routes(db *sqlx.DB) http.Handler {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
