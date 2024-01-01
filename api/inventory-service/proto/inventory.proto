@@ -4,10 +4,16 @@ option go_package = "./proto";
 
 service InventoryService {
     rpc GetProducts(GetProductsRequest) returns (GetProductsResponse);
+    rpc GetProductByID(GetProductByIDRequest) returns (Product);
 }
 
 message GetProductsRequest {
     int32 UserID = 1;
+}
+
+message GetProductByIDRequest {
+    int32 UserID = 1;
+    int32 ProductID = 2;
 }
 
 message Product {

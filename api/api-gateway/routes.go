@@ -23,6 +23,7 @@ func (app *application) routes() *gin.Engine {
 	getUsersHandlerGRPC := app.grpcGetUsersHandler(AUTHENTICATION_SERVICE_URL)
 
 	getProductsHandlerGRPC := app.gRPCGetProductsHandler(INVENTORY_SERVICE_URL)
+	getProductByIDHandlerGRPC := app.gRPCGetProductByIDHandler(INVENTORY_SERVICE_URL)
 
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
@@ -43,6 +44,7 @@ func (app *application) routes() *gin.Engine {
 	inventoryServiceEndpoint.Use(app.authenticationMiddleware()) // apply authentication (JWT Token) to inventory microservice
 
 	inventoryServiceEndpoint.GET("/products", getProductsHandlerGRPC)
+	inventoryServiceEndpoint.GET("/product/:id", getProductByIDHandlerGRPC)
 
 	return router
 }

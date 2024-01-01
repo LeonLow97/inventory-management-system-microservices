@@ -84,6 +84,90 @@ func (app *application) gRPCGetProductsHandler(urlString string) gin.HandlerFunc
 	}
 }
 
+func (app *application) gRPCGetProductByIDHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newInventoryGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		// retrieve product id from path param and convert to int32 type for grpc
+		productIDString := c.Param("id")
+		productID, err := strconv.ParseInt(productIDString, 10, 32)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		var getProductByIDRequest *pb.GetProductByIDRequest
+
+		// check if userID exists in the Gin context
+		if userID, found := c.Get("userID"); found {
+			id, err := strconv.Atoi(userID.(string))
+			if err != nil {
+				log.Println("Failed to convert userID to int in request context:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				return
+			}
+
+			getProductByIDRequest = &pb.GetProductByIDRequest{
+				UserID:    int32(id),
+				ProductID: int32(productID),
+			}
+		} else {
+			log.Println("UserID not found in jwt token claims")
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		resp, err := grpcClient.GetProductByID(ctx, getProductByIDRequest)
+		if err != nil {
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				switch int32(errorCode) {
+				case 3:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				case 5:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			} else {
+				log.Println("Unable to retrieve error status", err)
+				return
+			}
+		}
+
+		b, err := protojson.MarshalOptions{
+			UseProtoNames: true,
+		}.Marshal(resp)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		var responseData map[string]interface{}
+		err = json.Unmarshal(b, &responseData)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":   http.StatusOK,
+			"products": responseData,
+		})
+	}
+}
+
 func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		grpcClient, _, err := newAuthenticationGRPCClient(urlString)
@@ -122,7 +206,7 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 				}
 				return
 			} else {
-				log.Println("Unable to retrieve error status")
+				log.Println("Unable to retrieve error status", err)
 				return
 			}
 		}
@@ -217,7 +301,6 @@ func (app application) logoutHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "Logged out successfully!"})
 }
-
 
 func (app *application) grpcGetUsersHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {

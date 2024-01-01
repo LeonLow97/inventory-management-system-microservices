@@ -1,5 +1,10 @@
 package inventory
 
+type GetProductByIdDTO struct {
+	UserID    int
+	ProductID int
+}
+
 type Product struct {
 	BrandName    string `db:"brand_name"`
 	CategoryName string `db:"category_name"`
