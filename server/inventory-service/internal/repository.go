@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -10,7 +11,10 @@ type Repository interface {
 	GetProducts(userID int) (*[]Product, error)
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
 
-	CreateProduct(createProductDTO CreateProductDTO) error
+	GetBrandByName(brandName string) (*Brand, error)
+	GetCategoryByName(categoryName string) (*Category, error)
+
+	CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error
 }
 
 type MySQLRepo struct {
@@ -105,29 +109,77 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 	return &product, nil
 }
 
-func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO) error {
+func (r *MySQLRepo) GetBrandByName(brandName string) (*Brand, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, name, created_at FROM brands WHERE name = ?;
+	`
+
+	var brand Brand
+	if err := r.db.QueryRowContext(ctx, query, brandName).Scan(
+		&brand.ID,
+		&brand.Name,
+		&brand.CreatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrBrandNotFound
+		}
+		log.Println("error getting brand by name")
+		return nil, err
+	}
+
+	return &brand, nil
+}
+
+func (r *MySQLRepo) GetCategoryByName(categoryName string) (*Category, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, name, created_at FROM categories WHERE name = ?;
+	`
+
+	var category Category
+	if err := r.db.QueryRowContext(ctx, query, categoryName).Scan(
+		&category.ID,
+		&category.Name,
+		&category.CreatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrCategoryNotFound
+		}
+		log.Println("error getting category by name")
+		return nil, err
+	}
+
+	return &category, nil
+}
+
+func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	query := `
 		INSERT INTO products (user_id, brand_id, category_id, name, description, size, color, quantity)
 		VALUES (
-			?,
-			(SELECT id FROM brands WHERE name = ?),
-			(SELECT id FROM categories WHERE name = ?),
-			?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?
 		);
-	
 	`
 
-	result, err := r.db.ExecContext(ctx, query, createProductDTO.UserID, createProductDTO.BrandName, createProductDTO.CategoryName, createProductDTO.ProductName, createProductDTO.Description, createProductDTO.Size, createProductDTO.Color, createProductDTO.Quantity)
+	_, err := r.db.ExecContext(ctx, query,
+		createProductDTO.UserID,
+		brandID,
+		categoryID,
+		createProductDTO.ProductName,
+		createProductDTO.Description,
+		createProductDTO.Size,
+		createProductDTO.Color,
+		createProductDTO.Quantity)
 	if err != nil {
+		log.Println("Error creating product")
 		return err
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return ErrBrandOrCategoryNotFound
 	}
 
 	return nil

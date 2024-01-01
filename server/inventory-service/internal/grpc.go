@@ -103,8 +103,10 @@ func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateP
 
 	err := s.service.CreateProduct(*createProductDTO)
 	switch {
-	case errors.Is(err, ErrBrandOrCategoryNotFound):
-		return &empty.Empty{}, status.Error(codes.NotFound, "brand or category not found")
+	case errors.Is(err, ErrBrandNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Brand not found.")
+	case errors.Is(err, ErrCategoryNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Category not found.")
 	case err != nil:
 		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
 	default:

@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrProductNotFound = errors.New("product not found for this user")
-	
-	ErrBrandOrCategoryNotFound = errors.New("brand or category not found")
+
+	ErrBrandNotFound    = errors.New("brand not found")
+	ErrCategoryNotFound = errors.New("category not found")
 )

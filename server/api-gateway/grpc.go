@@ -221,7 +221,7 @@ func (app *application) gRPCCreateProductHandler(urlString string) gin.HandlerFu
 				case 3:
 					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
 				case 5:
-					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Brand Name or Category Name does not exist. Please try again."})
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 				}

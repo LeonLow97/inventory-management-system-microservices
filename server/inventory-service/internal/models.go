@@ -38,3 +38,15 @@ type Product struct {
 	CreatedAt    string `db:"created_at"`
 	UpdatedAt    string `db:"updated_at"`
 }
+
+type Brand struct {
+	ID        int    `db:"id"`
+	Name      string `db:"name"`
+	CreatedAt string `db:"created_at"`
+}
+
+type Category struct {
+	ID        int    `db:"id"`
+	Name      string `db:"name"`
+	CreatedAt string `db:"created_at"`
+}

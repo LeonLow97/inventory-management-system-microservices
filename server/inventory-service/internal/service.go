@@ -40,7 +40,19 @@ func (s service) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, 
 }
 
 func (s service) CreateProduct(createProductDTO CreateProductDTO) error {
-	if err := s.repo.CreateProduct(createProductDTO); err != nil {
+	brand, err := s.repo.GetBrandByName(createProductDTO.BrandName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	category, err := s.repo.GetCategoryByName(createProductDTO.CategoryName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if err := s.repo.CreateProduct(createProductDTO, brand.ID, category.ID); err != nil {
 		log.Println(err)
 		return err
 	}
