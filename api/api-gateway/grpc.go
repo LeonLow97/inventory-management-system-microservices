@@ -89,6 +89,7 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 		grpcClient, _, err := newAuthenticationGRPCClient(urlString)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
 		}
 
 		var req models.AuthRequest
@@ -153,6 +154,7 @@ func (app *application) gRPCSignUpHandler(urlString string) gin.HandlerFunc {
 		grpcClient, _, err := newAuthenticationGRPCClient(urlString)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
 		}
 
 		var req models.SignUpRequest
@@ -197,11 +199,32 @@ func (app *application) gRPCSignUpHandler(urlString string) gin.HandlerFunc {
 	}
 }
 
+func (app application) logoutHandler(c *gin.Context) {
+	cookie, err := c.Request.Cookie("ims-token")
+	if err == http.ErrNoCookie {
+		log.Println("No 'ims-token' cookie found.")
+		c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "Logged out successfully!"})
+		return
+	} else if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+		return
+	}
+
+	cookie.MaxAge = -1 // Invalidate the existing cookie by setting MaxAge to -1
+
+	http.SetCookie(c.Writer, cookie) // Update the cookie in the response header to invalidate it
+
+	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "Logged out successfully!"})
+}
+
+
 func (app *application) grpcGetUsersHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		grpcClient, _, err := newUsersGRPCClient(urlString)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

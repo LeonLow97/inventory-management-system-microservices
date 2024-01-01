@@ -32,6 +32,7 @@ func (app *application) routes() *gin.Engine {
 	// setting up different paths to handle requests for each microservice
 	router.POST("/authenticate", authenticationHandlerGRPC)
 	router.POST("/signup", signUpHandlerGRPC)
+	router.POST("/logout", app.logoutHandler)
 
 	// authentication microservice (protected resource)
 	router.PATCH("/user", app.authenticationMiddleware(), updateUserHandlerGRPC)

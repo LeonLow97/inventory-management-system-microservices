@@ -3,7 +3,7 @@ syntax = "proto3";
 option go_package = "./proto";
 
 // Empty message from the Google Protobuf package
- import "google/protobuf/empty.proto";
+import "google/protobuf/empty.proto";
 
 service UserService {
     rpc UpdateUser(UpdateUserRequest) returns (google.protobuf.Empty);
