@@ -4,10 +4,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/time/rate"
 )
 
@@ -17,6 +19,72 @@ var allowedIPs = []string{
 	"192.168.65.1",
 }
 
+// authenticationMiddleware verifies the jwt token passed by 'Authorization' Header
+func (app *application) authenticationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// get the jwt token from the Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if len(authHeader) == 0 {
+			log.Println("Missing Authorization in request header")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "error": "Unauthorized"})
+			return
+		}
+
+		// split the header on spaces
+		headerParts := strings.Split(authHeader, " ")
+		if len(headerParts) != 2 {
+			log.Println("Authorization header does not contain 2 parts")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "error": "Unauthorized"})
+			return
+		}
+
+		// check to see if we have the word "Bearer"
+		if headerParts[0] != "Bearer" {
+			log.Println("Bearer is missing in the authentication header")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "error": "Unauthorized"})
+			return
+		}
+
+		jwtTokenString := headerParts[1]
+
+		// validate the JWT Token
+		token, err := jwt.Parse(jwtTokenString, func(token *jwt.Token) (any, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(JWT_SECRET_KEY), nil
+		})
+
+		if err != nil || !token.Valid {
+			log.Println("Invalid token:", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "error": "Unauthorized"})
+			return
+		}
+
+		// get claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			log.Println("error getting claims:", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Internal Server Error"})
+			return
+		}
+
+		// retrieve issuer from claims
+		issuer, ok := claims["iss"]
+		if !ok {
+			log.Println("error retrieving issuer from claims:", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Internal Server Error"})
+			return
+		}
+
+		// storing the claims into the request context
+		c.Set("userID", issuer)
+
+		c.Next()
+	}
+}
+
+// ipWhitelistMiddleware check the client's IP against a list of allowed IP addresses (whitelist)
 func (app *application) ipWhitelistMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()

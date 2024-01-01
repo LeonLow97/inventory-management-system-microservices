@@ -18,4 +18,5 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (first_name, last_name, username, password, email)
 VALUES
-    ('Jie Wei', 'Low', 'lowjiewei', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'lowjiewei@email.com');
+    ('Jie Wei', 'Low', 'lowjiewei', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'lowjiewei@email.com'),
+    ('Leon', 'Low', 'leonlow', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'leonlow@email.com');

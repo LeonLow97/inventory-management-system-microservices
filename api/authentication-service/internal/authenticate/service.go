@@ -1,6 +1,7 @@
 package authenticate
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -94,11 +95,11 @@ func generateJWTToken(user User) (string, error) {
 	// generate token with claims
 	tokenExpireTime := time.Now().Add(1 * time.Hour)
 	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    user.Username,
+		Issuer:    fmt.Sprintf("%d", user.ID),
 		ExpiresAt: jwt.NewNumericDate(tokenExpireTime), // 1 hour
 	})
 
-	signedToken, err := generateToken.SignedString([]byte("SECRET_KEY"))
+	signedToken, err := generateToken.SignedString([]byte(JWT_SECRET_KEY))
 	if err != nil {
 		log.Println("error generating jwt token", err)
 		return "", err

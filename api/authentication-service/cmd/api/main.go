@@ -26,13 +26,10 @@ import (
 var authenticationServicePort = os.Getenv("SERVICE_PORT")
 
 type application struct {
-
 }
 
 func main() {
-	app := application{
-
-	}
+	app := application{}
 
 	db, err := app.connectToDB()
 	if err != nil {

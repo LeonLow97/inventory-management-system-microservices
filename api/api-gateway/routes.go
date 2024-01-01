@@ -7,6 +7,7 @@ import (
 )
 
 const AUTHENTICATION_SERVICE_URL = "authentication-service:8001"
+const INVENTORY_SERVICE_URL = "inventory-service:8002"
 
 func (app *application) routes() *gin.Engine {
 	router := gin.Default()
@@ -21,6 +22,8 @@ func (app *application) routes() *gin.Engine {
 	updateUserHandlerGRPC := app.grpcUpdateUserHandler(AUTHENTICATION_SERVICE_URL)
 	getUsersHandlerGRPC := app.grpcGetUsersHandler(AUTHENTICATION_SERVICE_URL)
 
+	getProductsHandlerGRPC := app.gRPCGetProductsHandler(INVENTORY_SERVICE_URL)
+
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "api gateway healthy and running!"})
@@ -30,8 +33,15 @@ func (app *application) routes() *gin.Engine {
 	router.POST("/authenticate", authenticationHandlerGRPC)
 	router.POST("/signup", signUpHandlerGRPC)
 
-	router.PATCH("/user", updateUserHandlerGRPC)
-	router.GET("/users", getUsersHandlerGRPC)
+	// authentication microservice (protected resource)
+	router.PATCH("/user", app.authenticationMiddleware(), updateUserHandlerGRPC)
+	router.GET("/users", app.authenticationMiddleware(), getUsersHandlerGRPC)
+
+	// inventory microservice (protected resource)
+	inventoryServiceEndpoint := router.Group("/inventory")
+	inventoryServiceEndpoint.Use(app.authenticationMiddleware()) // apply authentication (JWT Token) to inventory microservice
+
+	inventoryServiceEndpoint.GET("/products", getProductsHandlerGRPC)
 
 	return router
 }

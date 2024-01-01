@@ -30,7 +30,7 @@ func (r PostgresRepo) GetUserByUsername(username string) (User, error) {
 
 	var user User
 	query := `
-		SELECT first_name, last_name, username, password, email, active, admin, updated_at, created_at
+		SELECT id, first_name, last_name, username, password, email, active, admin, updated_at, created_at
 		FROM users
 		WHERE username = $1;
 	`

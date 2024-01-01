@@ -10,7 +10,7 @@ import (
 )
 
 type Repository interface {
-	GetUserByUsername(username string) (User, error)
+	GetUserByUsername(userID int) (User, error)
 	UpdateUserByUsername(req UpdateUserRequestDTO) error
 	GetUsers() (*[]User, error)
 }
@@ -25,7 +25,7 @@ func NewRepo(db *sqlx.DB) Repository {
 	}
 }
 
-func (r PostgresRepo) GetUserByUsername(username string) (User, error) {
+func (r PostgresRepo) GetUserByUsername(userID int) (User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
@@ -33,10 +33,10 @@ func (r PostgresRepo) GetUserByUsername(username string) (User, error) {
 	query := `
 		SELECT first_name, last_name, username, password, email, active, admin, updated_at, created_at
 		FROM users
-		WHERE username = $1;
+		WHERE id = $1;
 	`
 
-	if err := r.db.GetContext(ctx, &user, query, username); err != nil {
+	if err := r.db.GetContext(ctx, &user, query, userID); err != nil {
 		if err == sql.ErrNoRows {
 			// User with the specified username was not found
 			return user, ErrNotFound
@@ -61,7 +61,7 @@ func (r PostgresRepo) UpdateUserByUsername(req UpdateUserRequestDTO) error {
 			password = COALESCE(NULLIF($3, ''), password),
 			email = COALESCE(NULLIF($4, ''), email),
 			updated_at = $5
-		WHERE username = $6;
+		WHERE id = $6;
 	`
 
 	if _, err := r.db.ExecContext(ctx, query,
@@ -70,7 +70,7 @@ func (r PostgresRepo) UpdateUserByUsername(req UpdateUserRequestDTO) error {
 		req.Password,
 		req.Email,
 		time.Now(),
-		req.Username,
+		req.UserID,
 	); err != nil {
 		return err
 	}

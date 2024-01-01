@@ -22,13 +22,15 @@ func NewService(r Repository) Service {
 
 func (s service) UpdateUser(req UpdateUserRequestDTO) error {
 	// check if username exists
-	user, err := s.repo.GetUserByUsername(req.Username)
+	user, err := s.repo.GetUserByUsername(req.UserID)
 	if err != nil {
 		return err
 	}
 
 	// check if FirstName, LastName, Password, Email are the same as previous
-	if req.FirstName == user.FirstName || req.LastName == user.LastName || req.Email == user.Email {
+	if req.FirstName == user.FirstName && user.FirstName != "" ||
+		req.LastName == user.LastName && user.LastName != "" ||
+		req.Email == user.Email {
 		return ErrSameValue
 	}
 

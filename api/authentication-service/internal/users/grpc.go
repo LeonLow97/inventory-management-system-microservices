@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	pb "github.com/LeonLow97/proto"
@@ -24,14 +25,14 @@ func NewUsersGRPCHandler(s Service) *usersGRPCServer {
 
 func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*empty.Empty, error) {
 	// Validate the fields manually for gRPC requests, unable to validator golang package
+	if req.UserID == 0 || req.UserID < 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("UserID %d is invalid", req.UserID))
+	}
 	if len(req.FirstName) > 50 {
 		return nil, status.Error(codes.InvalidArgument, "LastName length did not meet requirements.")
 	}
 	if len(req.LastName) > 50 {
 		return nil, status.Error(codes.InvalidArgument, "FirstName length did not meet requirements.")
-	}
-	if req.Username == "" || len(req.Username) < 5 || len(req.Username) > 50 {
-		return nil, status.Error(codes.InvalidArgument, "Username length did not meet requirements.")
 	}
 	if len(req.Password) > 0 {
 		if len(req.Password) < 8 || len(req.Password) > 20 {
@@ -45,9 +46,9 @@ func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 	}
 
 	updateUserDTO := &UpdateUserRequestDTO{
+		UserID:    int(req.UserID),
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
-		Username:  req.Username,
 		Password:  req.Password,
 		Email:     req.Email,
 	}
@@ -63,6 +64,9 @@ func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 	case errors.Is(err, ErrInvalidPasswordFormat):
 		log.Println(err.Error())
 		return nil, status.Error(codes.InvalidArgument, "Invalid password format. Please try again.")
+	case errors.Is(err, ErrNotFound):
+		log.Println(err.Error())
+		return nil, status.Error(codes.NotFound, "User does not exist.")
 	case err != nil:
 		log.Println(err)
 		return nil, status.Error(codes.Internal, "Internal Server Error")

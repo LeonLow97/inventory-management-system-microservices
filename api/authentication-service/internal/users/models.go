@@ -6,9 +6,9 @@ import (
 )
 
 type UpdateUserRequestDTO struct {
+	UserID    int
 	FirstName string
 	LastName  string
-	Username  string
 	Password  string
 	Email     string
 }
@@ -16,7 +16,6 @@ type UpdateUserRequestDTO struct {
 func updateUserSanitize(req *UpdateUserRequestDTO) {
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
-	req.Username = strings.TrimSpace(req.Username)
 	req.Password = strings.TrimSpace(req.Password)
 	req.Email = strings.TrimSpace(req.Email)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/LeonLow97/models"
@@ -17,6 +18,71 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
+
+func (app *application) gRPCGetProductsHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newInventoryGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		var getProductsRequest *pb.GetProductsRequest
+
+		// check if userID exists in the Gin context
+		if userID, found := c.Get("userID"); found {
+			id, err := strconv.Atoi(userID.(string))
+			if err != nil {
+				log.Println("Failed to convert userID to int in request context:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				return
+			}
+
+			getProductsRequest = &pb.GetProductsRequest{
+				UserID: int32(id),
+			}
+		} else {
+			log.Println("UserID not found in jwt token claims")
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		resp, err := grpcClient.GetProducts(ctx, getProductsRequest)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		// convert protocol buffers message `resp` into JSON byte slice `b` while
+		// specifying the use of protocol buffers field names for JSON serialization
+		b, err := protojson.MarshalOptions{
+			UseProtoNames: true,
+		}.Marshal(resp)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		// Unmarshal the gRPC response into a map[string]interface{} to avoid double-escaping
+		var responseData map[string]interface{}
+		err = json.Unmarshal(b, &responseData)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":   http.StatusOK,
+			"products": responseData,
+		})
+	}
+}
 
 func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -189,13 +255,28 @@ func (app *application) grpcUpdateUserHandler(urlString string) gin.HandlerFunc 
 			return
 		}
 
+		var userIDContext int
+		// check if userID exists in the Gin context
+		if userID, found := c.Get("userID"); found {
+			userIDContext, err = strconv.Atoi(userID.(string))
+			if err != nil {
+				log.Println("Failed to convert userID to int in request context:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				return
+			}
+		} else {
+			log.Println("UserID not found in jwt token claims")
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
 		_, err = grpcClient.UpdateUser(ctx, &pb.UpdateUserRequest{
+			UserID:    int64(userIDContext),
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
-			Username:  req.Username,
 			Password:  req.Password,
 			Email:     req.Email,
 		})
@@ -206,6 +287,9 @@ func (app *application) grpcUpdateUserHandler(urlString string) gin.HandlerFunc 
 				case 3:
 					log.Println(err)
 					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				case 5:
+					log.Println(err)
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
 				default:
 					log.Println(err)
 					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
@@ -235,5 +319,15 @@ func newUsersGRPCClient(urlString string) (pb.UserServiceClient, *grpc.ClientCon
 	}
 
 	client := pb.NewUserServiceClient(conn)
+	return client, conn, nil
+}
+
+func newInventoryGRPCClient(urlString string) (pb.InventoryServiceClient, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(urlString, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, nil, fmt.Errorf("error dialing inventory-service: %v", err)
+	}
+
+	client := pb.NewInventoryServiceClient(conn)
 	return client, conn, nil
 }

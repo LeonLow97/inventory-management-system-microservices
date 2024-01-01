@@ -14,7 +14,7 @@ const contextUserKey contextKey = "user_ip"
 // Receive user's ip address from the context
 func IpFromContext(ctx context.Context) string {
 	return ctx.Value(contextUserKey).(string)
-}
+}2
 
 func AddIPToContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

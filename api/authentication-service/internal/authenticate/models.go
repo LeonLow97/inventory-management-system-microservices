@@ -11,6 +11,7 @@ type LoginRequestDTO struct {
 }
 
 type User struct {
+	ID        int       `db:"id"`
 	FirstName string    `db:"first_name"`
 	LastName  string    `db:"last_name"`
 	Username  string    `db:"username"`
