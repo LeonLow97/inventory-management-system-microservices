@@ -32,7 +32,7 @@ CREATE TABLE products (
 );
 
 -- Sample first names
-INSERT INTO brands (name) VALUES ('Nike'), ('Adidas'), ('Puma');
+INSERT INTO brands (name) VALUES ('Nike'), ('Adidas'), ('Puma'), ('Balenciaga');
 
 -- Sample last names
 INSERT INTO categories (name) VALUES ('Shoes'), ('Clothing'), ('Accessories');

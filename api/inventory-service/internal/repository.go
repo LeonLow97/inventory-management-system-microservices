@@ -9,6 +9,8 @@ import (
 type Repository interface {
 	GetProducts(userID int) (*[]Product, error)
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
+
+	CreateProduct(createProductDTO CreateProductDTO) error
 }
 
 type MySQLRepo struct {
@@ -101,4 +103,32 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 	}
 
 	return &product, nil
+}
+
+func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		INSERT INTO products (user_id, brand_id, category_id, name, description, size, color, quantity)
+		VALUES (
+			?,
+			(SELECT id FROM brands WHERE name = ?),
+			(SELECT id FROM categories WHERE name = ?),
+			?, ?, ?, ?, ?
+		);
+	
+	`
+
+	result, err := r.db.ExecContext(ctx, query, createProductDTO.UserID, createProductDTO.BrandName, createProductDTO.CategoryName, createProductDTO.ProductName, createProductDTO.Description, createProductDTO.Size, createProductDTO.Color, createProductDTO.Quantity)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrBrandOrCategoryNotFound
+	}
+
+	return nil
 }

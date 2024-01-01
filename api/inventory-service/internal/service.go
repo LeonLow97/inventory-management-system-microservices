@@ -5,6 +5,8 @@ import "log"
 type Service interface {
 	GetProducts(userID int) (*[]Product, error)
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
+
+	CreateProduct(createProductDTO CreateProductDTO) error
 }
 
 type service struct {
@@ -35,4 +37,13 @@ func (s service) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, 
 	}
 
 	return product, nil
+}
+
+func (s service) CreateProduct(createProductDTO CreateProductDTO) error {
+	if err := s.repo.CreateProduct(createProductDTO); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }

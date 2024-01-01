@@ -24,6 +24,7 @@ func (app *application) routes() *gin.Engine {
 
 	getProductsHandlerGRPC := app.gRPCGetProductsHandler(INVENTORY_SERVICE_URL)
 	getProductByIDHandlerGRPC := app.gRPCGetProductByIDHandler(INVENTORY_SERVICE_URL)
+	createProductHandlerGRPC := app.gRPCCreateProductHandler(INVENTORY_SERVICE_URL)
 
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
@@ -45,6 +46,7 @@ func (app *application) routes() *gin.Engine {
 
 	inventoryServiceEndpoint.GET("/products", getProductsHandlerGRPC)
 	inventoryServiceEndpoint.GET("/product/:id", getProductByIDHandlerGRPC)
+	inventoryServiceEndpoint.POST("/product", createProductHandlerGRPC)
 
 	return router
 }

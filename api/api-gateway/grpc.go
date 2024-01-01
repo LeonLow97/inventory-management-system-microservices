@@ -168,6 +168,74 @@ func (app *application) gRPCGetProductByIDHandler(urlString string) gin.HandlerF
 	}
 }
 
+func (app *application) gRPCCreateProductHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newInventoryGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		var req models.CreateProductRequest
+		// decode JSON request into struct (HTTP/1.1)
+		if err := c.BindJSON(&req); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
+			return
+		}
+
+		var createProductRequest *pb.CreateProductRequest
+		// check if userID exists in the Gin context
+		if userID, found := c.Get("userID"); found {
+			id, err := strconv.Atoi(userID.(string))
+			if err != nil {
+				log.Println("Failed to convert userID to int in request context:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				return
+			}
+
+			createProductRequest = &pb.CreateProductRequest{
+				UserID:       int32(id),
+				BrandName:    req.BrandName,
+				CategoryName: req.CategoryName,
+				ProductName:  req.ProductName,
+				Description:  req.Description,
+				Size:         req.Size,
+				Color:        req.Color,
+				Quantity:     req.Quantity,
+			}
+		} else {
+			log.Println("UserID not found in jwt token claims")
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		_, err = grpcClient.CreateProduct(ctx, createProductRequest)
+		if err != nil {
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				switch int32(errorCode) {
+				case 3:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				case 5:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Brand Name or Category Name does not exist. Please try again."})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			}
+		} else {
+			log.Println("Unable to retrieve error status", err)
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{"status": "Created", "message": fmt.Sprintf("Successfully created user %s", req.ProductName)})
+	}
+}
+
 func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		grpcClient, _, err := newAuthenticationGRPCClient(urlString)

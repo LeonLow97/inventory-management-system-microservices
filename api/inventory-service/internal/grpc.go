@@ -8,6 +8,7 @@ import (
 	pb "github.com/LeonLow97/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type inventoryGRPCServer struct {
@@ -82,5 +83,31 @@ func (s *inventoryGRPCServer) GetProductByID(ctx context.Context, req *pb.GetPro
 			CreatedAt:    product.CreatedAt,
 			UpdatedAt:    product.UpdatedAt,
 		}, nil
+	}
+}
+
+func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateProductRequest) (*empty.Empty, error) {
+	createProductDTO := &CreateProductDTO{
+		UserID:       int(req.GetUserID()),
+		BrandName:    req.GetBrandName(),
+		CategoryName: req.GetCategoryName(),
+		ProductName:  req.GetProductName(),
+		Description:  req.GetDescription(),
+		Size:         req.GetSize(),
+		Color:        req.GetColor(),
+		Quantity:     int(req.GetQuantity()),
+	}
+
+	// sanitize data
+	createProductSanitize(createProductDTO)
+
+	err := s.service.CreateProduct(*createProductDTO)
+	switch {
+	case errors.Is(err, ErrBrandOrCategoryNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "brand or category not found")
+	case err != nil:
+		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &empty.Empty{}, nil
 	}
 }

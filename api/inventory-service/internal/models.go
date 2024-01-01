@@ -1,8 +1,30 @@
 package inventory
 
+import "strings"
+
 type GetProductByIdDTO struct {
 	UserID    int
 	ProductID int
+}
+
+type CreateProductDTO struct {
+	UserID       int
+	BrandName    string
+	CategoryName string
+	ProductName  string
+	Description  string
+	Size         string
+	Color        string
+	Quantity     int
+}
+
+func createProductSanitize(createProductDTO *CreateProductDTO) {
+	createProductDTO.BrandName = strings.TrimSpace(createProductDTO.BrandName)
+	createProductDTO.CategoryName = strings.TrimSpace(createProductDTO.CategoryName)
+	createProductDTO.ProductName = strings.TrimSpace(createProductDTO.ProductName)
+	createProductDTO.Description = strings.TrimSpace(createProductDTO.Description)
+	createProductDTO.Size = strings.TrimSpace(createProductDTO.Size)
+	createProductDTO.Color = strings.TrimSpace(createProductDTO.Color)
 }
 
 type Product struct {
