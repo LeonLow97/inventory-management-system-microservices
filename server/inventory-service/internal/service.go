@@ -9,6 +9,8 @@ type Service interface {
 	CreateProduct(createProductDTO CreateProductDTO) error
 
 	UpdateProductByID(updateProductDTO UpdateProductDTO) error
+
+	DeleteProductByID(req DeleteProductDTO) error
 }
 
 type service struct {
@@ -78,10 +80,9 @@ func (s service) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
 	updateProductDTO.BrandID = brand.ID
 	updateProductDTO.CategoryID = category.ID
 
-	if err := s.repo.UpdateProductByID(updateProductDTO); err != nil {
-		log.Println(err)
-		return err
-	}
+	return s.repo.UpdateProductByID(updateProductDTO)
+}
 
-	return nil
+func (s service) DeleteProductByID(req DeleteProductDTO) error {
+	return s.repo.DeleteProductByID(req)
 }

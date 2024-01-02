@@ -322,3 +322,64 @@ func (app *application) gRPCUpdateProductHandler(urlString string) gin.HandlerFu
 		c.JSON(http.StatusNoContent, gin.H{"status": http.StatusNoContent, "message": "Updated Product!"})
 	}
 }
+
+func (app *application) gRPCDeleteProductHandler(urlString string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		grpcClient, _, err := newInventoryGRPCClient(urlString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		// retrieve product id from path param and convert to int32 type for grpc
+		productIDString := c.Param("id")
+		productID, err := strconv.ParseInt(productIDString, 10, 32)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		var deleteProductRequest *pb.DeleteProductRequest
+		// check if userID exists in the Gin context
+		if userID, found := c.Get("userID"); found {
+			id, err := strconv.Atoi(userID.(string))
+			if err != nil {
+				log.Println("Failed to convert userID to int in request context:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				return
+			}
+
+			deleteProductRequest = &pb.DeleteProductRequest{
+				UserID:    int32(id),
+				ProductID: int32(productID),
+			}
+		} else {
+			log.Println("UserID not found in jwt token claims")
+			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+			return
+		}
+
+		_, err = grpcClient.DeleteProduct(ctx, deleteProductRequest)
+		if err != nil {
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				switch int32(errorCode) {
+				case 5:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			} else {
+				log.Println("Unable to retrieve error status", err)
+				return
+			}
+		}
+
+		c.JSON(http.StatusNoContent, gin.H{"status": http.StatusNoContent, "message": "Deleted Product!"})
+	}
+}

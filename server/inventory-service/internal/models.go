@@ -32,6 +32,11 @@ type UpdateProductDTO struct {
 	Quantity     int
 }
 
+type DeleteProductDTO struct {
+	UserID    int
+	ProductID int
+}
+
 func createProductSanitize(createProductDTO *CreateProductDTO) {
 	createProductDTO.BrandName = strings.TrimSpace(createProductDTO.BrandName)
 	createProductDTO.CategoryName = strings.TrimSpace(createProductDTO.CategoryName)

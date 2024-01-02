@@ -17,6 +17,7 @@ type Repository interface {
 	CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error
 
 	UpdateProductByID(updateProductDTO UpdateProductDTO) error
+	DeleteProductByID(req DeleteProductDTO) error
 }
 
 type MySQLRepo struct {
@@ -39,7 +40,7 @@ func (r *MySQLRepo) GetProducts(userID int) (*[]Product, error) {
 		FROM products p
 		JOIN brands b ON b.id = p.brand_id
 		JOIN categories c ON c.id = p.category_id
-		WHERE p.user_id = ?;
+		WHERE p.user_id = ? AND p.is_deleted = 0;
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
@@ -85,7 +86,7 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 		FROM products p
 		JOIN brands b ON b.id = p.brand_id
 		JOIN categories c ON c.id = p.category_id
-		WHERE p.user_id = ? AND p.id = ?;
+		WHERE p.user_id = ? AND p.id = ? AND p.is_deleted = 0;
 	`
 
 	var product Product
@@ -218,6 +219,37 @@ func (r *MySQLRepo) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
 	if err != nil {
 		log.Println("Error updating product", err)
 		return err
+	}
+
+	return nil
+}
+
+func (r *MySQLRepo) DeleteProductByID(req DeleteProductDTO) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE products
+		SET
+			is_deleted = 1
+		WHERE user_id = ? AND id = ?;
+	`
+
+	result, err := r.db.ExecContext(ctx, query,
+		req.UserID,
+		req.ProductID,
+	)
+	if err != nil {
+		log.Println("Error performing soft delete on product", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected != 1 {
+		return ErrProductNotFound
 	}
 
 	return nil

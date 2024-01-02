@@ -10,6 +10,7 @@ service InventoryService {
     rpc GetProductByID(GetProductByIDRequest) returns (Product);
     rpc CreateProduct(CreateProductRequest) returns (google.protobuf.Empty);
     rpc UpdateProduct(UpdateProductRequest) returns (google.protobuf.Empty);
+    rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty);
 }
 
 message GetProductsRequest {
@@ -42,6 +43,11 @@ message UpdateProductRequest {
     string size = 7;
     string color = 8;
     int32 quantity = 9;
+}
+
+message DeleteProductRequest {
+    int32 UserID = 1;
+    int32 ProductID = 2;
 }
 
 message Product {

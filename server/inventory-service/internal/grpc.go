@@ -144,3 +144,20 @@ func (s *inventoryGRPCServer) UpdateProduct(ctx context.Context, req *pb.UpdateP
 		return &empty.Empty{}, nil
 	}
 }
+
+func (s *inventoryGRPCServer) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*empty.Empty, error) {
+	deleteProductDTO := &DeleteProductDTO{
+		UserID:    int(req.UserID),
+		ProductID: int(req.ProductID),
+	}
+
+	err := s.service.DeleteProductByID(*deleteProductDTO)
+	switch {
+	case errors.Is(err, ErrProductNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Product does not exist for the user.")
+	case err != nil:
+		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &empty.Empty{}, nil
+	}
+}
