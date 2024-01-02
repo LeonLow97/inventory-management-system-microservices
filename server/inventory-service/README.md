@@ -8,7 +8,7 @@
 |  GET   | `/inventory/products/{id}`        | Retrieve details of a specific product   |
 |  POST  | `/inventory/products`             | Create a new product                     |
 |  PUT   | `/inventory/products/{id}`        | Update details of a product              |
-| DELETE | `/inventory/products/{id}`        | Delete a product                         |
+| DELETE | `/inventory/products/{id}`        | Delete a product (Soft Delete)           |
 |  POST  | `/inventory/products/{id}/adjust` | Adjust the inventory count for a product |
 
 ### Database Tables

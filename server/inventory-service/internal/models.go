@@ -18,6 +18,20 @@ type CreateProductDTO struct {
 	Quantity     int
 }
 
+type UpdateProductDTO struct {
+	UserID       int
+	ProductID    int
+	BrandName    string
+	BrandID      int
+	CategoryName string
+	CategoryID   int
+	ProductName  string
+	Description  string
+	Size         string
+	Color        string
+	Quantity     int
+}
+
 func createProductSanitize(createProductDTO *CreateProductDTO) {
 	createProductDTO.BrandName = strings.TrimSpace(createProductDTO.BrandName)
 	createProductDTO.CategoryName = strings.TrimSpace(createProductDTO.CategoryName)
@@ -25,6 +39,15 @@ func createProductSanitize(createProductDTO *CreateProductDTO) {
 	createProductDTO.Description = strings.TrimSpace(createProductDTO.Description)
 	createProductDTO.Size = strings.TrimSpace(createProductDTO.Size)
 	createProductDTO.Color = strings.TrimSpace(createProductDTO.Color)
+}
+
+func updateProductSanitize(updateProductDTO *UpdateProductDTO) {
+	updateProductDTO.BrandName = strings.TrimSpace(updateProductDTO.BrandName)
+	updateProductDTO.CategoryName = strings.TrimSpace(updateProductDTO.CategoryName)
+	updateProductDTO.ProductName = strings.TrimSpace(updateProductDTO.ProductName)
+	updateProductDTO.Description = strings.TrimSpace(updateProductDTO.Description)
+	updateProductDTO.Size = strings.TrimSpace(updateProductDTO.Size)
+	updateProductDTO.Color = strings.TrimSpace(updateProductDTO.Color)
 }
 
 type Product struct {

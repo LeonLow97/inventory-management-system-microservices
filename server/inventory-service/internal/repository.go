@@ -15,6 +15,8 @@ type Repository interface {
 	GetCategoryByName(categoryName string) (*Category, error)
 
 	CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error
+
+	UpdateProductByID(updateProductDTO UpdateProductDTO) error
 }
 
 type MySQLRepo struct {
@@ -178,7 +180,43 @@ func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO, brandID, ca
 		createProductDTO.Color,
 		createProductDTO.Quantity)
 	if err != nil {
-		log.Println("Error creating product")
+		log.Println("Error creating product", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *MySQLRepo) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE products
+		SET
+			brand_id = COALESCE(NULLIF(?, 0), brand_id),
+			category_id = COALESCE(NULLIF(?, 0), category_id),
+			name = COALESCE(NULLIF(?, ''), name),
+			description = COALESCE(NULLIF(?, ''), description),
+			size = COALESCE(NULLIF(?, ''), size),
+			color = COALESCE(NULLIF(?, ''), color),
+			quantity = COALESCE(NULLIF(?, 0), quantity)
+		WHERE user_id = ? AND id = ?;
+	`
+
+	_, err := r.db.ExecContext(ctx, query,
+		updateProductDTO.BrandID,
+		updateProductDTO.CategoryID,
+		updateProductDTO.ProductName,
+		updateProductDTO.Description,
+		updateProductDTO.Size,
+		updateProductDTO.Color,
+		updateProductDTO.Quantity,
+		updateProductDTO.UserID,
+		updateProductDTO.ProductID,
+	)
+	if err != nil {
+		log.Println("Error updating product", err)
 		return err
 	}
 

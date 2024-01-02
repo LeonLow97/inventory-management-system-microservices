@@ -93,7 +93,7 @@ func (s service) SignUp(req SignUpRequestDTO) error {
 
 func generateJWTToken(user User) (string, error) {
 	// generate token with claims
-	tokenExpireTime := time.Now().Add(1 * time.Hour)
+	tokenExpireTime := time.Now().Add(JWT_TOKEN_EXPIRY)
 	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Issuer:    fmt.Sprintf("%d", user.ID),
 		ExpiresAt: jwt.NewNumericDate(tokenExpireTime), // 1 hour

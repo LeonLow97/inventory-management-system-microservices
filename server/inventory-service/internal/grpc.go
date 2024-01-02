@@ -113,3 +113,34 @@ func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateP
 		return &empty.Empty{}, nil
 	}
 }
+
+func (s *inventoryGRPCServer) UpdateProduct(ctx context.Context, req *pb.UpdateProductRequest) (*empty.Empty, error) {
+	updateProductDTO := &UpdateProductDTO{
+		UserID:       int(req.UserID),
+		ProductID:    int(req.ProductID),
+		BrandName:    req.GetBrandName(),
+		CategoryName: req.GetCategoryName(),
+		ProductName:  req.GetProductName(),
+		Description:  req.GetDescription(),
+		Size:         req.GetSize(),
+		Color:        req.GetColor(),
+		Quantity:     int(req.GetQuantity()),
+	}
+
+	// sanitize data
+	updateProductSanitize(updateProductDTO)
+
+	err := s.service.UpdateProductByID(*updateProductDTO)
+	switch {
+	case errors.Is(err, ErrBrandNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Brand not found.")
+	case errors.Is(err, ErrCategoryNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Category not found.")
+	case errors.Is(err, ErrProductNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Product does not exist for the user.")
+	case err != nil:
+		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &empty.Empty{}, nil
+	}
+}

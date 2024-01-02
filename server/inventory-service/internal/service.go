@@ -7,6 +7,8 @@ type Service interface {
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
 
 	CreateProduct(createProductDTO CreateProductDTO) error
+
+	UpdateProductByID(updateProductDTO UpdateProductDTO) error
 }
 
 type service struct {
@@ -53,6 +55,30 @@ func (s service) CreateProduct(createProductDTO CreateProductDTO) error {
 	}
 
 	if err := s.repo.CreateProduct(createProductDTO, brand.ID, category.ID); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (s service) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
+	brand, err := s.repo.GetBrandByName(updateProductDTO.BrandName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	category, err := s.repo.GetCategoryByName(updateProductDTO.CategoryName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	updateProductDTO.BrandID = brand.ID
+	updateProductDTO.CategoryID = category.ID
+
+	if err := s.repo.UpdateProductByID(updateProductDTO); err != nil {
 		log.Println(err)
 		return err
 	}
