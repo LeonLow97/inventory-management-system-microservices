@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 
 	inventory "github.com/LeonLow97/internal"
@@ -27,10 +26,11 @@ func main() {
 
 	go app.initiateGRPCServer(db)
 
-	r := app.routes(db)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", "8003"), r); err != nil {
-		log.Fatalf("Failed to start inventory microservice with error %v", err)
-	}
+	// go kafkago.Consumer()
+
+	app.routes(db)
+
+	select {}
 }
 
 func (app *application) initiateGRPCServer(db *sql.DB) {

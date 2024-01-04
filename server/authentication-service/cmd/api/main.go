@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"regexp"
 
@@ -38,11 +37,9 @@ func main() {
 
 	go app.initiateGRPCServer(db)
 
-	r := app.routes(db)
-	log.Println("Auth Service is running on port", authenticationServicePort)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", "8002"), r); err != nil {
-		log.Fatalf("Failed to start authentication microservice with error %v", err)
-	}
+	app.routes(db)
+
+	select {}
 }
 
 func (app *application) initiateGRPCServer(db *sqlx.DB) {
