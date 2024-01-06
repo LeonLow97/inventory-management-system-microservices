@@ -4,6 +4,11 @@ type GetOrdersDTO struct {
 	UserID int
 }
 
+type GetOrderDTO struct {
+	UserID  int
+	OrderID int
+}
+
 type Order struct {
 	OrderID      int    `db:"id"`
 	ProductID    int    `db:"product_id"`

@@ -56,3 +56,35 @@ func (s *orderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersReques
 		}, nil
 	}
 }
+
+func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.Order, error) {
+	dto := GetOrderDTO{
+		UserID:  int(req.UserID),
+		OrderID: int(req.OrderID),
+	}
+
+	order, err := s.service.GetOrderByID(dto)
+	switch {
+	case errors.Is(err, ErrNoOrderFound):
+		return nil, status.Error(codes.NotFound, "No Order Found")
+	case err != nil:
+		return nil, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &pb.Order{
+			OrderId:      int64(order.OrderID),
+			ProductId:    int64(order.ProductID),
+			CustomerName: order.CustomerName,
+			BrandName:    order.BrandName,
+			CategoryName: order.CategoryName,
+			Color:        order.Color,
+			Size:         order.Size,
+			Quantity:     int64(order.Quantity),
+			Description:  order.Description,
+			Revenue:      float32(order.Revenue),
+			Cost:         float32(order.Cost),
+			Profit:       float32(order.Profit),
+			HasReviewed:  order.HasReviewed,
+			CreatedAt:    order.CreatedAt,
+		}, nil
+	}
+}

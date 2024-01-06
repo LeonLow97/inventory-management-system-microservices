@@ -17,7 +17,7 @@ CREATE TABLE categories (
 -- products table
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL, -- comes from authentication microservice
+    user_id INT NOT NULL UNIQUE, -- comes from authentication microservice
     brand_id INT NOT NULL,
     category_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,

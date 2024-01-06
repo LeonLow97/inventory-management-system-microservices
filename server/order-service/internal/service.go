@@ -4,6 +4,7 @@ import "log"
 
 type Service interface {
 	GetOrders(req GetOrdersDTO) (*[]Order, error)
+	GetOrderByID(req GetOrderDTO) (*Order, error)
 }
 
 type service struct {
@@ -24,4 +25,14 @@ func (s service) GetOrders(req GetOrdersDTO) (*[]Order, error) {
 	}
 
 	return orders, err
+}
+
+func (s service) GetOrderByID(req GetOrderDTO) (*Order, error) {
+	order, err := s.repo.GetOrderByID(req)
+	if err != nil {
+		log.Printf("error getting 1 order by order_id %d with error %v\n", req.OrderID, err)
+		return nil, err
+	}
+
+	return order, nil
 }

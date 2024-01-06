@@ -3,7 +3,7 @@ AUTHENTICATION_BINARY=authApp
 INVENTORY_BINARY=inventoryApp
 ORDER_BINARY=orderApp
 
-up_build: build_api_gateway build_authentication build_inventory build_order
+build: build_api_gateway build_authentication build_inventory build_order
 	docker-compose down
 	@echo "Building and starting docker images..."
 	docker-compose up --build -d

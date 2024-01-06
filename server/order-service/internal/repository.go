@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -9,6 +10,7 @@ import (
 
 type Repository interface {
 	GetOrders(req GetOrdersDTO) (*[]Order, error)
+	GetOrderByID(req GetOrderDTO) (*Order, error)
 }
 
 type repo struct {
@@ -35,13 +37,50 @@ func (r repo) GetOrders(req GetOrdersDTO) (*[]Order, error) {
 
 	var orders []Order
 	if err := r.db.SelectContext(ctx, &orders, query, req.UserID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoOrdersFound
+		}
 		return nil, err
 	}
 
-	// If no rows are returned, return an empty slice instead of nil
-	if len(orders) == 0 {
-		return nil, ErrNoOrdersFound
+	return &orders, nil
+}
+
+func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	query := `
+		SELECT id, product_id, customer_name, brand_name, category_name, 
+			color, size, quantity, description, revenue, cost, profit, has_reviewed, 
+			created_at, updated_at
+		FROM orders
+		WHERE user_id = $1 AND id = $2;
+	`
+
+	var order Order
+	if err := r.db.QueryRowContext(ctx, query, req.UserID, req.OrderID).Scan(
+		&order.OrderID,
+		&order.ProductID,
+		&order.CustomerName,
+		&order.BrandName,
+		&order.CategoryName,
+		&order.Color,
+		&order.Size,
+		&order.Quantity,
+		&order.Description,
+		&order.Revenue,
+		&order.Cost,
+		&order.Profit,
+		&order.HasReviewed,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoOrderFound
+		}
+		return nil, err
 	}
 
-	return &orders, nil
+	return &order, nil
 }

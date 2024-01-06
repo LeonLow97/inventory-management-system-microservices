@@ -2,9 +2,13 @@ syntax = "proto3";
 
 option go_package = "./proto";
 
+// Empty message from the Google Protobuf package
+import "google/protobuf/empty.proto";
+
 service OrderService {
     rpc GetOrders(GetOrdersRequest) returns (GetOrdersResponse);
     rpc GetOrder(GetOrderRequest) returns (Order);
+    rpc CreateOrder(CreateOrderRequest) returns (google.protobuf.Empty);
 }
 
 message GetOrdersRequest {
@@ -35,4 +39,20 @@ message Order {
 
 message GetOrdersResponse {
     repeated Order orders = 1;
+}
+
+message CreateOrderRequest {
+    int64 UserID = 1;
+    string CustomerName = 2;
+    string ProductName = 3;
+    string BrandName = 4;
+    string CategoryName = 5;
+    string Color = 6;
+    string Size = 7;
+    int64 Quantity = 8;
+    string Description = 9;
+    int64 Revenue = 10;
+    int64 Cost = 11;
+    int64 Profit = 12;
+    bool HasReviewed = 13;
 }
