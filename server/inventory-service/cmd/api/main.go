@@ -8,12 +8,18 @@ import (
 	"os"
 
 	inventory "github.com/LeonLow97/internal"
+	kafkago "github.com/LeonLow97/internal/kafka"
 	pb "github.com/LeonLow97/proto"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
 )
 
 var inventoryServicePort = os.Getenv("SERVICE_PORT")
+
+const (
+	topicDecrementInventory = "DECREMENT_INVENTORY"
+	brokerAddress           = "broker:9092"
+)
 
 type application struct {
 }
@@ -26,7 +32,24 @@ func main() {
 
 	go app.initiateGRPCServer(db)
 
-	// go kafkago.Consumer()
+	// initiate kafka-go segmentio instance
+	segmentioInstance := kafkago.NewSegmentio()
+
+	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
+	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
+	if err != nil {
+		log.Fatalln("Unable to create kafka topics", err)
+	}
+	log.Println("Successfully created kafka topics!")
+	defer conn.Close()
+	defer controllerConn.Close()
+
+	// Consume messages from order management microservice
+	go func() {
+		if err := segmentioInstance.Consumer(brokerAddress, topicDecrementInventory); err != nil {
+			log.Printf("failed to consume message for %s topic: %v\n", topicDecrementInventory, err)
+		}
+	}()
 
 	app.routes(db)
 
@@ -62,8 +85,6 @@ func (app *application) connectToDB() *sql.DB {
 		os.Getenv("MYSQL_PORT"),
 		os.Getenv("MYSQL_DATABASE"),
 	)
-
-	fmt.Println("dsn:", dsn)
 
 	// open a connection to MySQL database
 	conn, err := sql.Open("mysql", dsn)

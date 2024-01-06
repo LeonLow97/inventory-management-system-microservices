@@ -96,6 +96,22 @@ services:
       interval: 10s
       timeout: 2s
 
+  order-service:
+    build:
+      context: ./../order-management-service
+      dockerfile: ./../order-management-service/Dockerfile
+    # depends_on:
+    #   order-postgresql:
+    #     condition: service_healthy
+    depends_on:
+      - broker
+    restart: always
+    ports:
+      - '8003:8003'
+    deploy:
+      mode: replicated
+      replicas: 1
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
@@ -111,11 +127,17 @@ services:
       - '9092:9092'
     depends_on:
       - zookeeper
+    healthcheck:
+      test:
+        ['CMD', 'kafka-topics', '--bootstrap-server', 'broker:9092', '--list']
+      interval: 30s
+      timeout: 10s
+      retries: 10
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1

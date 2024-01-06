@@ -1,8 +1,9 @@
 APIGATEWAY_BINARY=apiGateway
 AUTHENTICATION_BINARY=authApp
 INVENTORY_BINARY=inventoryApp
+ORDER_BINARY=orderApp
 
-up_build: build_api_gateway build_authentication build_inventory
+up_build: build_api_gateway build_authentication build_inventory build_order
 	docker-compose down
 	@echo "Building and starting docker images..."
 	docker-compose up --build -d
@@ -19,6 +20,10 @@ build_authentication:
 build_inventory:
 	@echo "Build inventory binary..."
 	cd ../inventory-service && env GOOS=linux CGO_ENABLED=0 go build -o ${INVENTORY_BINARY} ./cmd/api
+
+build_order:
+	@echo "Build order binary..."
+	cd ../order-management-service && env GOOS=linux CGO_ENABLED=0 go build -o ${ORDER_BINARY} ./cmd/api
 
 down:
 	docker-compose down

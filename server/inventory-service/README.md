@@ -28,3 +28,22 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 export PATH="$PATH:$(go env GOPATH)/bin"
 protoc --go_out=. --go-grpc_out=. proto/inventory.proto
 ```
+
+### Kafka CLI Commands
+
+```
+// Access docker container
+docker-compose exec broker bash
+
+// Create Topic
+kafka-topics --create --topic test-topic --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1
+
+// List Topics
+kafka-topics --list --bootstrap-server localhost:9092
+
+// Write to Topic
+kafka-console-producer --topic test-topic --bootstrap-server localhost:9092
+
+// Read Topic
+kafka-console-consumer --topic test-topic --from-beginning --bootstrap-server localhost:9092
+```

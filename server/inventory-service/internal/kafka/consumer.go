@@ -4,47 +4,27 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/segmentio/kafka-go"
 )
 
-const (
-	topic     = "DECREMENT_INVENTORY"
-	partition = 0
-	broker    = "broker:9092"
-)
+// Consumer reads messages from a Kafka topic
+func (s *Segmentio) Consumer(brokerAddress, topic string) error {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{brokerAddress},
+		Topic:   topic,
+	})
+	defer r.Close()
 
-func Consumer() {
-	conn, err := kafka.DialLeader(context.Background(), "tcp", broker, topic, partition)
-	if err != nil {
-		log.Fatalf("Failed to dial leader: %v", err)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			log.Fatal("failed to close connection:", err)
-		}
-	}()
-
-	err = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	if err != nil {
-		log.Fatalf("Failed to set read deadline: %v", err)
-	}
-
-	batch := conn.ReadBatch(10e3, 1e6) // fetch 10KB min, 1MB max
-	defer func() {
-		if err := batch.Close(); err != nil {
-			log.Fatal("failed to close batch:", err)
-		}
-	}()
-
-	b := make([]byte, 10e3) // 10 KB max per message
+	// read messages indefinitely
 	for {
-		n, err := batch.Read(b)
+		m, err := r.ReadMessage(context.Background())
 		if err != nil {
+			log.Println("error reading message in consumer for topic", topic)
 			break
 		}
-		fmt.Println(string(b[:n]))
+		fmt.Printf("Received message: %s\n", string(m.Value))
 	}
 
+	return nil
 }
