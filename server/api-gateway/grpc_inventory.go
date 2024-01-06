@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/LeonLow97/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
@@ -43,28 +45,35 @@ func (app *application) gRPCGetProductsHandler(urlString string) gin.HandlerFunc
 		var getProductsRequest *pb.GetProductsRequest
 
 		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			id, err := strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
-
-			getProductsRequest = &pb.GetProductsRequest{
-				UserID: int32(id),
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
 
+		getProductsRequest = &pb.GetProductsRequest{
+			UserID: int32(userID),
+		}
+
 		resp, err := grpcClient.GetProducts(ctx, getProductsRequest)
 		if err != nil {
-			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-			return
+			if status, ok := status.FromError(err); ok {
+				errorCode := status.Code()
+				switch int32(errorCode) {
+				case 5:
+					c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", status.Message())})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
+				}
+				return
+			} else {
+				log.Println("Unable to retrieve error status", err)
+				return
+			}
 		}
 
 		// convert protocol buffers message `resp` into JSON byte slice `b` while
@@ -117,22 +126,18 @@ func (app *application) gRPCGetProductByIDHandler(urlString string) gin.HandlerF
 		var getProductByIDRequest *pb.GetProductByIDRequest
 
 		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			id, err := strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
-
-			getProductByIDRequest = &pb.GetProductByIDRequest{
-				UserID:    int32(id),
-				ProductID: int32(productID),
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
+		}
+		getProductByIDRequest = &pb.GetProductByIDRequest{
+			UserID:    int32(userID),
+			ProductID: int32(productID),
 		}
 
 		resp, err := grpcClient.GetProductByID(ctx, getProductByIDRequest)
@@ -197,30 +202,35 @@ func (app *application) gRPCCreateProductHandler(urlString string) gin.HandlerFu
 			return
 		}
 
-		var createProductRequest *pb.CreateProductRequest
-		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			id, err := strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
+		// validate http request json property values
+		validate := validator.New()
+		if err = validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", err.Error())})
+			return
+		}
 
-			createProductRequest = &pb.CreateProductRequest{
-				UserID:       int32(id),
-				BrandName:    req.BrandName,
-				CategoryName: req.CategoryName,
-				ProductName:  req.ProductName,
-				Description:  req.Description,
-				Size:         req.Size,
-				Color:        req.Color,
-				Quantity:     req.Quantity,
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		var createProductRequest *pb.CreateProductRequest
+
+		// check if userID exists in the Gin context
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
+		}
+
+		createProductRequest = &pb.CreateProductRequest{
+			UserID:       int32(userID),
+			BrandName:    req.BrandName,
+			CategoryName: req.CategoryName,
+			ProductName:  req.ProductName,
+			Description:  req.Description,
+			Size:         req.Size,
+			Color:        req.Color,
+			Quantity:     req.Quantity,
 		}
 
 		_, err = grpcClient.CreateProduct(ctx, createProductRequest)
@@ -273,31 +283,36 @@ func (app *application) gRPCUpdateProductHandler(urlString string) gin.HandlerFu
 			return
 		}
 
-		var updateProductRequest *pb.UpdateProductRequest
-		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			id, err := strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
+		// validate http request json property values
+		validate := validator.New()
+		if err = validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", err.Error())})
+			return
+		}
 
-			updateProductRequest = &pb.UpdateProductRequest{
-				UserID:       int32(id),
-				ProductID:    int32(productID),
-				BrandName:    req.BrandName,
-				CategoryName: req.CategoryName,
-				ProductName:  req.ProductName,
-				Description:  req.Description,
-				Size:         req.Size,
-				Color:        req.Color,
-				Quantity:     req.Quantity,
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		var updateProductRequest *pb.UpdateProductRequest
+
+		// check if userID exists in the Gin context
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
+		}
+
+		updateProductRequest = &pb.UpdateProductRequest{
+			UserID:       int32(userID),
+			ProductID:    int32(productID),
+			BrandName:    req.BrandName,
+			CategoryName: req.CategoryName,
+			ProductName:  req.ProductName,
+			Description:  req.Description,
+			Size:         req.Size,
+			Color:        req.Color,
+			Quantity:     req.Quantity,
 		}
 
 		_, err = grpcClient.UpdateProduct(ctx, updateProductRequest)
@@ -344,23 +359,21 @@ func (app *application) gRPCDeleteProductHandler(urlString string) gin.HandlerFu
 		defer cancel()
 
 		var deleteProductRequest *pb.DeleteProductRequest
-		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			id, err := strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
 
-			deleteProductRequest = &pb.DeleteProductRequest{
-				UserID:    int32(id),
-				ProductID: int32(productID),
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		// check if userID exists in the Gin context
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
+		}
+
+		deleteProductRequest = &pb.DeleteProductRequest{
+			UserID:    int32(userID),
+			ProductID: int32(productID),
 		}
 
 		_, err = grpcClient.DeleteProduct(ctx, deleteProductRequest)

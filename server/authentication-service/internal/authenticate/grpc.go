@@ -22,7 +22,6 @@ func NewAuthenticateGRPCHandler(s Service) *authenticationGRPCServer {
 }
 
 func (s *authenticationGRPCServer) Authenticate(ctx context.Context, req *pb.AuthRequest) (*pb.AuthResponse, error) {
-	// Validate the fields manually for gRPC requests, unable to validator golang package
 	if req.Username == "" || len(req.Username) < 5 || len(req.Username) > 50 {
 		return nil, status.Error(codes.InvalidArgument, "Invalid username format.")
 	}

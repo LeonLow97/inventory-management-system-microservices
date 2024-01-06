@@ -9,6 +9,7 @@ import (
 
 	"github.com/LeonLow97/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
@@ -39,6 +40,13 @@ func (app *application) gRPCAuthenticationHandler(urlString string) gin.HandlerF
 		if err := c.BindJSON(&req); err != nil {
 			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
+			return
+		}
+
+		// validate http request json property values
+		validate := validator.New()
+		if err = validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", err.Error())})
 			return
 		}
 
@@ -104,6 +112,13 @@ func (app *application) gRPCSignUpHandler(urlString string) gin.HandlerFunc {
 		if err := c.BindJSON(&req); err != nil {
 			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": "Bad Request"})
+			return
+		}
+
+		// validate http request json property values
+		validate := validator.New()
+		if err = validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", err.Error())})
 			return
 		}
 

@@ -24,7 +24,6 @@ func NewUsersGRPCHandler(s Service) *usersGRPCServer {
 }
 
 func (s *usersGRPCServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*empty.Empty, error) {
-	// Validate the fields manually for gRPC requests, unable to validator golang package
 	if req.UserID == 0 || req.UserID < 0 {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("UserID %d is invalid", req.UserID))
 	}

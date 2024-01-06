@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/LeonLow97/models"
 	pb "github.com/LeonLow97/proto"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
@@ -88,17 +89,20 @@ func (app *application) grpcUpdateUserHandler(urlString string) gin.HandlerFunc 
 			return
 		}
 
-		var userIDContext int
+		// validate http request json property values
+		validate := validator.New()
+		if err = validate.Struct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "message": fmt.Sprintf("Bad Request: %s", err.Error())})
+			return
+		}
+
 		// check if userID exists in the Gin context
-		if userID, found := c.Get("userID"); found {
-			userIDContext, err = strconv.Atoi(userID.(string))
-			if err != nil {
-				log.Println("Failed to convert userID to int in request context:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
-				return
-			}
-		} else {
-			log.Println("UserID not found in jwt token claims")
+		userID, err := app.retrieveUserIDFromToken(c)
+		switch {
+		case errors.Is(err, ErrMissingUserIDInJWTToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"status": http.StatusUnauthorized, "message": "Unauthorized"})
+			return
+		case err != nil:
 			c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "message": "Internal Server Error"})
 			return
 		}
@@ -107,7 +111,7 @@ func (app *application) grpcUpdateUserHandler(urlString string) gin.HandlerFunc 
 		defer cancel()
 
 		_, err = grpcClient.UpdateUser(ctx, &pb.UpdateUserRequest{
-			UserID:    int64(userIDContext),
+			UserID:    int64(userID),
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
 			Password:  req.Password,

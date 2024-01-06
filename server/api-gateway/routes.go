@@ -6,8 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const AUTHENTICATION_SERVICE_URL = "authentication-service:8001"
-const INVENTORY_SERVICE_URL = "inventory-service:8002"
+const (
+	AUTHENTICATION_SERVICE_URL = "authentication-service:8001"
+	INVENTORY_SERVICE_URL      = "inventory-service:8002"
+	ORDER_SERVICE_URL          = "order-service:8003"
+)
 
 func (app *application) routes() *gin.Engine {
 	router := gin.Default()
@@ -22,11 +25,15 @@ func (app *application) routes() *gin.Engine {
 	updateUserHandlerGRPC := app.grpcUpdateUserHandler(AUTHENTICATION_SERVICE_URL)
 	getUsersHandlerGRPC := app.grpcGetUsersHandler(AUTHENTICATION_SERVICE_URL)
 
+	// inventory microservice
 	getProductsHandlerGRPC := app.gRPCGetProductsHandler(INVENTORY_SERVICE_URL)
 	getProductByIDHandlerGRPC := app.gRPCGetProductByIDHandler(INVENTORY_SERVICE_URL)
 	createProductHandlerGRPC := app.gRPCCreateProductHandler(INVENTORY_SERVICE_URL)
 	updateProductHandlerGRPC := app.gRPCUpdateProductHandler(INVENTORY_SERVICE_URL)
 	deleteProductHandlerGRPC := app.gRPCDeleteProductHandler(INVENTORY_SERVICE_URL)
+
+	// order microservice
+	getOrdersHandlerGRPC := app.gRPCGetOrdersHandler(ORDER_SERVICE_URL)
 
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
@@ -51,6 +58,11 @@ func (app *application) routes() *gin.Engine {
 	inventoryServiceEndpoint.POST("/product", createProductHandlerGRPC)
 	inventoryServiceEndpoint.PATCH("/product/:id", updateProductHandlerGRPC)
 	inventoryServiceEndpoint.DELETE("/product/:id", deleteProductHandlerGRPC)
+
+	orderServiceEndpoint := router.Group("")
+	orderServiceEndpoint.Use(app.authenticationMiddleware())
+
+	orderServiceEndpoint.GET("/order", getOrdersHandlerGRPC)
 
 	return router
 }
