@@ -32,12 +32,12 @@ func main() {
 
 	db, err := app.connectToDB()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to connect to postgres db: %v\n", err)
 	}
 
-	go app.initiateGRPCServer(db)
+	app.setupDBDependencies(db)
 
-	app.routes(db)
+	go app.initiateGRPCServer(db)
 
 	select {}
 }
@@ -45,7 +45,7 @@ func main() {
 func (app *application) initiateGRPCServer(db *sqlx.DB) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", authenticationServicePort))
 	if err != nil {
-		log.Fatalf("Failed to start the grpc server with error: %v", err)
+		log.Fatalf("Failed to start grpc server with error: %v\n", err)
 	}
 
 	authService := authenticate.NewService(authenticate.NewRepo(db))

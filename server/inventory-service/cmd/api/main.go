@@ -30,6 +30,8 @@ func main() {
 	db := app.connectToDB()
 	defer db.Close()
 
+	app.setupDBDependencies(db)
+
 	go app.initiateGRPCServer(db)
 
 	// initiate kafka-go segmentio instance
@@ -50,8 +52,6 @@ func main() {
 			log.Printf("failed to consume message for %s topic: %v\n", topicDecrementInventory, err)
 		}
 	}()
-
-	app.routes(db)
 
 	select {}
 }

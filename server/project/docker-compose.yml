@@ -46,7 +46,7 @@ services:
       POSTGRES_DB: imsdb
     volumes:
       # using volumes instead of bind mounts
-      - postgres:/var/lib/postgresql/data
+      - postgres-authentication:/var/lib/postgresql/data
       - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
@@ -100,17 +100,43 @@ services:
     build:
       context: ./../order-service
       dockerfile: ./../order-service/Dockerfile
-    # depends_on:
-    #   order-postgresql:
-    #     condition: service_healthy
     depends_on:
-      - broker
+      order-postgres:
+        condition: service_healthy
     restart: always
     ports:
       - '8003:8003'
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      POSTGRES_USER: order-postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: order-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: imsdb
+      SERVICE_PORT: '8003'
+
+  order-postgres:
+    image: 'postgres:14.2'
+    ports:
+      - '5433:5432'
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: order-postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: imsdb
+    volumes:
+      # using volumes instead of bind mounts
+      - postgres-order:/var/lib/postgresql/data
+      - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
@@ -143,5 +169,6 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
 volumes:
-  postgres:
+  postgres-authentication:
+  postgres-order:
   mysql:
