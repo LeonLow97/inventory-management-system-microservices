@@ -98,8 +98,8 @@ services:
 
   order-service:
     build:
-      context: ./../order-management-service
-      dockerfile: ./../order-management-service/Dockerfile
+      context: ./../order-service
+      dockerfile: ./../order-service/Dockerfile
     # depends_on:
     #   order-postgresql:
     #     condition: service_healthy

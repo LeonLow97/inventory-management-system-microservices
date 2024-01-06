@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	kafkago "github.com/LeonLow97/internal/kafka"
 )
@@ -10,6 +11,8 @@ const (
 	topicDecrementInventory = "DECREMENT_INVENTORY"
 	brokerAddress           = "broker:9092"
 )
+
+var orderServicePort = os.Getenv("SERVICE_PORT")
 
 func main() {
 	// initiate kafka-go segmentio instance

@@ -23,7 +23,7 @@ build_inventory:
 
 build_order:
 	@echo "Build order binary..."
-	cd ../order-management-service && env GOOS=linux CGO_ENABLED=0 go build -o ${ORDER_BINARY} ./cmd/api
+	cd ../order-service && env GOOS=linux CGO_ENABLED=0 go build -o ${ORDER_BINARY} ./cmd/api
 
 down:
 	docker-compose down
