@@ -70,6 +70,9 @@ func (r *MySQLRepo) GetProducts(userID int) (*[]Product, error) {
 	}
 
 	if err := rows.Err(); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrProductsNotFound
+		}
 		return nil, err
 	}
 

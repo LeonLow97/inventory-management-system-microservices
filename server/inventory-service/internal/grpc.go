@@ -24,8 +24,10 @@ func NewInventoryGRPCHandler(s Service) *inventoryGRPCServer {
 
 func (s *inventoryGRPCServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.GetProductsResponse, error) {
 	products, err := s.service.GetProducts(int(req.UserID))
-	if err != nil {
-		log.Println(err)
+	switch {
+	case errors.Is(err, ErrProductsNotFound):
+		return nil, status.Error(codes.NotFound, "No Products found for the given User ID")
+	case err != nil:
 		return nil, status.Error(codes.Internal, "Internal Server Error")
 	}
 

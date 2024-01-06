@@ -46,8 +46,8 @@ services:
       POSTGRES_DB: imsdb
     volumes:
       # using volumes instead of bind mounts
-      - postgres-authentication:/var/lib/postgresql/data
-      - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      # - postgres-authentication:/var/lib/postgresql/data
+      - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-authentication-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
@@ -89,7 +89,7 @@ services:
       MYSQL_DATABASE: imsdb
     volumes:
       # using volumes instead of bind mounts
-      - mysql:/var/lib/mysql
+      # - mysql:/var/lib/mysql
       - ./init-db/init-inventory-db.sql:/docker-entrypoint-initdb.d/init-inventory-db.sql
     healthcheck:
       test: mysqladmin ping -u$$MYSQL_USER -p$$MYSQL_PASSWORD
@@ -131,8 +131,8 @@ services:
       POSTGRES_DB: imsdb
     volumes:
       # using volumes instead of bind mounts
-      - postgres-order:/var/lib/postgresql/data
-      - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      # - postgres-order:/var/lib/postgresql/data
+      - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-order-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s

@@ -62,7 +62,7 @@ func (app *application) routes() *gin.Engine {
 	orderServiceEndpoint := router.Group("")
 	orderServiceEndpoint.Use(app.authenticationMiddleware())
 
-	orderServiceEndpoint.GET("/order", getOrdersHandlerGRPC)
+	orderServiceEndpoint.GET("/orders", getOrdersHandlerGRPC)
 
 	return router
 }

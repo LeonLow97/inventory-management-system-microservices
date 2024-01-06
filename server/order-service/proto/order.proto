@@ -29,7 +29,7 @@ message Order {
     float revenue = 10;
     float cost = 11;
     float profit = 12;
-    int32 has_reviewed = 13;
+    bool has_reviewed = 13;
     string created_at = 14;
 }
 
