@@ -47,3 +47,14 @@ kafka-console-producer --topic test-topic --bootstrap-server localhost:9092
 // Read Topic
 kafka-console-consumer --topic test-topic --from-beginning --bootstrap-server localhost:9092
 ```
+
+### Access MySQL in Docker Container command
+
+```
+// retrieve container name
+docker ps
+
+docker exec -it project-inventory-mysql-1 bash
+
+mysql -u inventory-mysql -p password
+```

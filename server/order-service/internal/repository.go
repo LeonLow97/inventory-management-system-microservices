@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -95,8 +96,8 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 			product_id, user_id, customer_name, brand_name, category_name, color, size, 
 			quantity, description, revenue, cost, profit, has_reviewed, status, status_reason, order_uuid
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-		)
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+		);
 	`
 
 	//cost, profit, has_reviewed, status
@@ -118,6 +119,10 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 		req.StatusReason,
 		req.OrderUUID,
 	)
+	if err != nil {
+		log.Println("error creating order in repository", err)
+		return err
+	}
 
-	return err
+	return nil
 }

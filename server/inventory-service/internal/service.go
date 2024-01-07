@@ -5,6 +5,7 @@ import "log"
 type Service interface {
 	GetProducts(userID int) (*[]Product, error)
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
+	GetProductByName(req GetProductDetailsDTO) (*Product, error)
 
 	CreateProduct(createProductDTO CreateProductDTO) error
 
@@ -35,6 +36,16 @@ func (s service) GetProducts(userID int) (*[]Product, error) {
 
 func (s service) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error) {
 	product, err := s.repo.GetProductByID(getProductByIdDTO)
+	if err != nil {
+		log.Println("error getting products in service", err)
+		return nil, err
+	}
+
+	return product, nil
+}
+
+func (s service) GetProductByName(req GetProductDetailsDTO) (*Product, error) {
+	product, err := s.repo.GetProductByName(req)
 	if err != nil {
 		log.Println("error getting products in service", err)
 		return nil, err

@@ -2,6 +2,13 @@ package inventory
 
 import "strings"
 
+type GetProductDetailsDTO struct {
+	UserID       int
+	BrandName    string
+	CategoryName string
+	ProductName  string
+}
+
 type GetProductByIdDTO struct {
 	UserID    int
 	ProductID int
@@ -56,6 +63,7 @@ func updateProductSanitize(updateProductDTO *UpdateProductDTO) {
 }
 
 type Product struct {
+	ID           int64  `db:"id"`
 	BrandName    string `db:"brand_name"`
 	CategoryName string `db:"category_name"`
 	ProductName  string `db:"product_name"`

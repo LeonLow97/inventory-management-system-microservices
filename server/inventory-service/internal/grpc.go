@@ -163,3 +163,27 @@ func (s *inventoryGRPCServer) DeleteProduct(ctx context.Context, req *pb.DeleteP
 		return &empty.Empty{}, nil
 	}
 }
+
+func (s *inventoryGRPCServer) GetProductDetails(ctx context.Context, req *pb.GetProductDetailsRequest) (*pb.GetProductDetailsResponse, error) {
+	getProductDetailsDTO := &GetProductDetailsDTO{
+		UserID:       int(req.UserID),
+		BrandName:    req.BrandName,
+		CategoryName: req.CategoryName,
+		ProductName:  req.ProductName,
+	}
+
+	product, err := s.service.GetProductByName(*getProductDetailsDTO)
+	switch {
+	case errors.Is(err, ErrProductNotFound):
+		log.Println(err)
+		return nil, status.Error(codes.NotFound, "Product does not exist.")
+	case err != nil:
+		log.Println(err)
+		return nil, status.Error(codes.Internal, "Internal Server Error")
+	default:
+		return &pb.GetProductDetailsResponse{
+			UserID:    req.UserID,
+			ProductID: product.ID,
+		}, nil
+	}
+}

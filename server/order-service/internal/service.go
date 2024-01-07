@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	grpcclient "github.com/LeonLow97/internal/grpc"
 	"github.com/LeonLow97/internal/kafkago"
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
@@ -19,13 +20,15 @@ type service struct {
 	repo              Repository
 	segmentioInstance *kafkago.Segmentio
 	kafkaConfig       *kafkago.KafkaConfig
+	grpcClient        grpcclient.InventoryServiceClient
 }
 
-func NewService(repo Repository, segmentioInstance *kafkago.Segmentio, kafkaConfig *kafkago.KafkaConfig) Service {
+func NewService(repo Repository, segmentioInstance *kafkago.Segmentio, grpcClient grpcclient.InventoryServiceClient, kafkaConfig *kafkago.KafkaConfig) Service {
 	return &service{
 		repo:              repo,
 		segmentioInstance: segmentioInstance,
 		kafkaConfig:       kafkaConfig,
+		grpcClient:        grpcClient,
 	}
 }
 
@@ -51,6 +54,14 @@ func (s service) GetOrderByID(req GetOrderDTO) (*Order, error) {
 
 func (s service) CreateOrder(req CreateOrderDTO) error {
 	// get product names (product_id) and category names via grpc to inventory microservice
+	resp, err := s.grpcClient.GRPCGetProductDetailsHandler(req.UserID, req.BrandName, req.CategoryName, req.ProductName)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if resp.ProductID == 0 {
+		return ErrProductNotFound
+	}
 
 	// generate uuid for order event
 	orderUUID := uuid.New().String()
@@ -83,7 +94,7 @@ func (s service) CreateOrder(req CreateOrderDTO) error {
 	// create order with status 'SUBMITTED'
 	req.Status = "SUBMITTED"
 	req.OrderUUID = orderUUID
-	if err := s.repo.CreateOrder(req, 1); err != nil {
+	if err := s.repo.CreateOrder(req, int(resp.ProductID)); err != nil {
 		return err
 	}
 

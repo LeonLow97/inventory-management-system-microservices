@@ -11,6 +11,9 @@ service InventoryService {
     rpc CreateProduct(CreateProductRequest) returns (google.protobuf.Empty);
     rpc UpdateProduct(UpdateProductRequest) returns (google.protobuf.Empty);
     rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty);
+
+    // order microservice and inventory microservice
+    rpc GetProductDetails(GetProductDetailsRequest) returns (GetProductDetailsResponse);
 }
 
 message GetProductsRequest {
@@ -64,4 +67,16 @@ message Product {
 
 message GetProductsResponse {
     repeated Product products = 1;
+}
+
+message GetProductDetailsRequest {
+    int64 UserID = 1;
+    string BrandName = 2;
+    string CategoryName = 3;
+    string ProductName = 4;
+}
+
+message GetProductDetailsResponse {
+    int64 UserID = 2;
+    int64 ProductID = 1;
 }

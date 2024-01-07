@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	GetProducts(userID int) (*[]Product, error)
 	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
+	GetProductByName(req GetProductDetailsDTO) (*Product, error)
 
 	GetBrandByName(brandName string) (*Brand, error)
 	GetCategoryByName(categoryName string) (*Category, error)
@@ -96,6 +97,43 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 	if err := r.db.QueryRowContext(
 		ctx, query, getProductByIdDTO.UserID, getProductByIdDTO.ProductID,
 	).Scan(
+		&product.BrandName,
+		&product.CategoryName,
+		&product.ProductName,
+		&product.Description,
+		&product.Size,
+		&product.Color,
+		&product.Quantity,
+		&product.CreatedAt,
+		&product.UpdatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrProductNotFound
+		}
+		return nil, err
+	}
+
+	return &product, nil
+}
+
+func (r *MySQLRepo) GetProductByName(req GetProductDetailsDTO) (*Product, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT p.id, b.name AS brand_name, c.name AS category_name, p.name AS product_name,
+			p.description, p.size, p.color, p.quantity, p.created_at, p.updated_at
+		FROM products p
+		JOIN brands b ON b.id = p.brand_id
+		JOIN categories c ON c.id = p.category_id
+		WHERE p.user_id = ? AND p.name = ? AND p.is_deleted = 0;
+	`
+
+	var product Product
+	if err := r.db.QueryRowContext(
+		ctx, query, req.UserID, req.ProductName,
+	).Scan(
+		&product.ID,
 		&product.BrandName,
 		&product.CategoryName,
 		&product.ProductName,

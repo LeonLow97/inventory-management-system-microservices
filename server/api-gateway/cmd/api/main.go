@@ -24,6 +24,9 @@ func main() {
 	app := application{}
 
 	grpcClients := app.initiateGRPCClients()
+	defer grpcClients.orderConn.Close()
+	defer grpcClients.inventoryConn.Close()
+	defer grpcClients.authConn.Close()
 
 	// getting router with gin engine
 	router := app.routes(grpcClients)

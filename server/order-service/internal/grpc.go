@@ -11,18 +11,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type orderGRPCServer struct {
+type OrderGRPCServer struct {
 	service Service
 	pb.OrderServiceServer
 }
 
-func NewOrderGRPCHandler(service Service) *orderGRPCServer {
-	return &orderGRPCServer{
+func NewOrderGRPCHandler(service Service) *OrderGRPCServer {
+	return &OrderGRPCServer{
 		service: service,
 	}
 }
 
-func (s *orderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersRequest) (*pb.GetOrdersResponse, error) {
+func (s *OrderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersRequest) (*pb.GetOrdersResponse, error) {
 	dto := GetOrdersDTO{
 		UserID: int(req.UserID),
 	}
@@ -59,7 +59,7 @@ func (s *orderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersReques
 	}
 }
 
-func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.Order, error) {
+func (s *OrderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.Order, error) {
 	dto := GetOrderDTO{
 		UserID:  int(req.UserID),
 		OrderID: int(req.OrderID),
@@ -91,7 +91,7 @@ func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest)
 	}
 }
 
-func (s *orderGRPCServer) CreateOrder(ctx context.Context, req *pb.CreateOrderRequest) (*empty.Empty, error) {
+func (s *OrderGRPCServer) CreateOrder(ctx context.Context, req *pb.CreateOrderRequest) (*empty.Empty, error) {
 	createOrderDTO := &CreateOrderDTO{
 		UserID:       int(req.UserID),
 		CustomerName: req.CustomerName,
@@ -108,9 +108,11 @@ func (s *orderGRPCServer) CreateOrder(ctx context.Context, req *pb.CreateOrderRe
 		HasReviewed:  req.HasReviewed,
 	}
 
-	if err := s.service.CreateOrder(*createOrderDTO); err != nil {
+	err := s.service.CreateOrder(*createOrderDTO)
+	switch {
+	case errors.Is(err, ErrProductNotFound):
+		return &empty.Empty{}, status.Error(codes.NotFound, "Product not found for the given user.")
+	default:
 		return &empty.Empty{}, err
 	}
-
-	return &empty.Empty{}, nil
 }
