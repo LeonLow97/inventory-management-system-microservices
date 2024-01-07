@@ -49,7 +49,7 @@ func (s service) GetOrderByID(req GetOrderDTO) (*Order, error) {
 }
 
 func (s service) CreateOrder(req CreateOrderDTO) error {
-	// get product names and category names via grpc to inventory microservice
+	// get product names (product_id) and category names via grpc to inventory microservice
 
 	orderEvent := OrderEvent{
 		Action:   "create_order",
@@ -77,6 +77,9 @@ func (s service) CreateOrder(req CreateOrderDTO) error {
 	}()
 
 	// create order with status 'SUBMITTED'
+	if err := s.repo.CreateOrder(req, 1); err != nil {
+		return err
+	}
 
 	return nil
 }

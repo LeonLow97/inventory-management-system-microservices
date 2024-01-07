@@ -11,7 +11,7 @@ build: build_api_gateway build_authentication build_inventory build_order
 
 build_api_gateway:
 	@echo "Build api gateway binary..."
-	cd ../api-gateway && env GOOS=linux CGO_ENABLED=0 go build -o ${APIGATEWAY_BINARY} .
+	cd ../api-gateway && env GOOS=linux CGO_ENABLED=0 go build -o ${APIGATEWAY_BINARY} ./cmd/api
 
 build_authentication:
 	@echo "Build authentication binary..."
