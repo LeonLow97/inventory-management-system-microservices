@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/LeonLow97/internal/kafkago"
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -51,10 +52,13 @@ func (s service) GetOrderByID(req GetOrderDTO) (*Order, error) {
 func (s service) CreateOrder(req CreateOrderDTO) error {
 	// get product names (product_id) and category names via grpc to inventory microservice
 
+	// generate uuid for order event
+	orderUUID := uuid.New().String()
+
 	orderEvent := OrderEvent{
-		Action:   "create_order",
-		UserID:   req.UserID,
-		Quantity: req.Quantity,
+		OrderUUID: orderUUID,
+		UserID:    req.UserID,
+		Quantity:  req.Quantity,
 	}
 
 	jsonData, err := json.Marshal(orderEvent)
@@ -65,7 +69,7 @@ func (s service) CreateOrder(req CreateOrderDTO) error {
 	// produce an order to inventory microservice to update inventory count
 	createOrderEvent := []kafka.Message{
 		{
-			Key:   []byte(orderEvent.Action),
+			Key:   []byte(orderEvent.OrderUUID),
 			Value: []byte(jsonData),
 		},
 	}
@@ -77,6 +81,8 @@ func (s service) CreateOrder(req CreateOrderDTO) error {
 	}()
 
 	// create order with status 'SUBMITTED'
+	req.Status = "SUBMITTED"
+	req.OrderUUID = orderUUID
 	if err := s.repo.CreateOrder(req, 1); err != nil {
 		return err
 	}

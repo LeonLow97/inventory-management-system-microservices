@@ -92,7 +92,8 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 
 	query := `
 		INSERT INTO orders (
-			product_id, user_id, customer_name, brand_name, category_name, color, size, quantity, description, revenue, cost, profit, has_reviewed, status
+			product_id, user_id, customer_name, brand_name, category_name, color, size, 
+			quantity, description, revenue, cost, profit, has_reviewed, status, status_reason, order_uuid
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 		)
@@ -113,7 +114,9 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 		req.Cost,
 		req.Profit,
 		req.HasReviewed,
-		"SUBMITTED",
+		req.Status,
+		req.StatusReason,
+		req.OrderUUID,
 	)
 
 	return err

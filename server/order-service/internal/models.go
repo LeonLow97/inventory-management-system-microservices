@@ -1,9 +1,9 @@
 package order
 
 type OrderEvent struct {
-	Action   string `json:"action"`
-	UserID   int    `json:"user_id"`
-	Quantity int    `json:"quantity"`
+	OrderUUID string `json:"order_uuid"`
+	UserID    int    `json:"user_id"`
+	Quantity  int    `json:"quantity"`
 }
 
 type GetOrdersDTO struct {
@@ -29,6 +29,9 @@ type CreateOrderDTO struct {
 	Cost         int64
 	Profit       int64
 	HasReviewed  bool
+	Status       string
+	StatusReason string
+	OrderUUID    string
 }
 
 type Order struct {
