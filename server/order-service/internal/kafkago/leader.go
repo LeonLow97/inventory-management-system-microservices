@@ -7,6 +7,18 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+type KafkaConfig struct {
+	BrokerAddress string
+	TopicName     string
+}
+
+func NewKafkaConfig(brokerAddress string, topicName string) *KafkaConfig {
+	return &KafkaConfig{
+		BrokerAddress: brokerAddress,
+		TopicName:     topicName,
+	}
+}
+
 type Segmentio struct {
 	topicConfigs []kafka.TopicConfig // to store multiple topics
 }

@@ -16,11 +16,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	topicDecrementInventory = "DECREMENT_INVENTORY"
-	brokerAddress           = "broker:9092"
-)
-
 var orderServicePort = os.Getenv("SERVICE_PORT")
 
 type application struct {
@@ -36,36 +31,35 @@ func main() {
 
 	app.setupDBDependencies(db)
 
-	go app.initiateGRPCServer(db)
-
 	// initiate kafka-go segmentio instance
 	segmentioInstance := kafkago.NewSegmentio()
 
-	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
-	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
+	// add update inventory count topic to kafka
+	kafkaConfigUpdateInventoryCount := kafkago.NewKafkaConfig("broker:9092", "update-inventory-count")
+	segmentioInstance.AddTopicConfig(kafkaConfigUpdateInventoryCount.TopicName, 1, 1)
+	conn, controllerConn, err := segmentioInstance.CreateTopics(kafkaConfigUpdateInventoryCount.BrokerAddress)
 	if err != nil {
 		log.Fatalln("Unable to create kafka topics", err)
+	} else {
+		log.Println("Successfully created kafka topics!")
 	}
-	log.Println("Successfully created kafka topics!")
 	defer conn.Close()
 	defer controllerConn.Close()
 
-	go func() {
-		if err := segmentioInstance.Producer(brokerAddress, topicDecrementInventory); err != nil {
-			log.Printf("failed to produce message for %s topic: %v\n", topicDecrementInventory, err)
-		}
-	}()
+	// running grpc server in the background
+	go app.initiateGRPCServer(db, segmentioInstance, kafkaConfigUpdateInventoryCount)
 
 	select {}
 }
 
-func (app *application) initiateGRPCServer(db *sqlx.DB) {
+func (app *application) initiateGRPCServer(db *sqlx.DB, segmentio *kafkago.Segmentio, kafkaconfig *kafkago.KafkaConfig) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", orderServicePort))
 	if err != nil {
 		log.Fatalf("Failed to start grpc server with error: %v\n", err)
 	}
 
-	orderService := order.NewService(order.NewRepository(db))
+	orderRepo := order.NewRepository(db)
+	orderService := order.NewService(orderRepo, segmentio, kafkaconfig)
 
 	// create new grpc server
 	grpcServer := grpc.NewServer()

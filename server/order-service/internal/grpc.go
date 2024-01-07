@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	pb "github.com/LeonLow97/proto"
+	empty "google.golang.org/protobuf/types/known/emptypb"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -87,4 +89,28 @@ func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest)
 			CreatedAt:    order.CreatedAt,
 		}, nil
 	}
+}
+
+func (s *orderGRPCServer) CreateOrder(ctx context.Context, req *pb.CreateOrderRequest) (*empty.Empty, error) {
+	createOrderDTO := &CreateOrderDTO{
+		UserID:       int(req.UserID),
+		CustomerName: req.CustomerName,
+		ProductName:  req.ProductName,
+		BrandName:    req.BrandName,
+		CategoryName: req.CategoryName,
+		Color:        req.Color,
+		Size:         req.Size,
+		Quantity:     int(req.Quantity),
+		Description:  req.Description,
+		Revenue:      req.Revenue,
+		Cost:         req.Cost,
+		Profit:       req.Profit,
+		HasReviewed:  req.HasReviewed,
+	}
+
+	if err := s.service.CreateOrder(*createOrderDTO); err != nil {
+		return &empty.Empty{}, err
+	}
+
+	return &empty.Empty{}, nil
 }

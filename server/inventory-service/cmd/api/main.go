@@ -17,7 +17,7 @@ import (
 var inventoryServicePort = os.Getenv("SERVICE_PORT")
 
 const (
-	topicDecrementInventory = "DECREMENT_INVENTORY"
+	topicDecrementInventory = "update-inventory-count"
 	brokerAddress           = "broker:9092"
 )
 
@@ -47,11 +47,18 @@ func main() {
 	defer controllerConn.Close()
 
 	// Consume messages from order management microservice
-	go func() {
-		if err := segmentioInstance.Consumer(brokerAddress, topicDecrementInventory); err != nil {
-			log.Printf("failed to consume message for %s topic: %v\n", topicDecrementInventory, err)
+	messageChan := make(chan kafkago.OrderEvent)
+	errorChan := make(chan error)
+	go segmentioInstance.Consumer(brokerAddress, topicDecrementInventory, messageChan, errorChan)
+	for {
+		select {
+		case msg := <-messageChan:
+			fmt.Println("received order")
+			fmt.Printf("Action: %s, UserID: %d, Quantity: %d\n", msg.Action, msg.UserID, msg.Quantity)
+		case err := <-errorChan:
+			fmt.Println("Error reading order", err)
 		}
-	}()
+	}
 
 	select {}
 }

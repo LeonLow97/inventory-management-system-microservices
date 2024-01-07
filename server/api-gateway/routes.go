@@ -35,6 +35,7 @@ func (app *application) routes() *gin.Engine {
 	// order microservice
 	getOrdersHandlerGRPC := app.gRPCGetOrdersHandler(ORDER_SERVICE_URL)
 	getOrderHandlerGRPC := app.gRPCGetOrderHandler(ORDER_SERVICE_URL)
+	createOrderHandlerGRPC := app.gRPCCreateOrderHandler(ORDER_SERVICE_URL)
 
 	// for pinging and testing the api gateway
 	router.GET("/", func(c *gin.Context) {
@@ -65,6 +66,7 @@ func (app *application) routes() *gin.Engine {
 
 	orderServiceEndpoint.GET("/orders", getOrdersHandlerGRPC)
 	orderServiceEndpoint.GET("/order/:id", getOrderHandlerGRPC)
+	orderServiceEndpoint.POST("/order", createOrderHandlerGRPC)
 
 	return router
 }

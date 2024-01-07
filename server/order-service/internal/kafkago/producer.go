@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func (s *Segmentio) Producer(brokerAddress, topic string) error {
+func (s *Segmentio) Producer(brokerAddress, topic string, messages []kafka.Message) error {
 	w := &kafka.Writer{
 		Addr:     kafka.TCP(brokerAddress),
 		Topic:    topic,
@@ -20,17 +20,10 @@ func (s *Segmentio) Producer(brokerAddress, topic string) error {
 		}
 	}()
 
-	if err := w.WriteMessages(context.Background(),
-		kafka.Message{
-			Key:   []byte("Test 1 Message"),
-			Value: []byte("Decrease 1 count"),
-		},
-		kafka.Message{
-			Key:   []byte("Test 2 Message"),
-			Value: []byte("Decrease 100 count"),
-		},
-	); err != nil {
-		log.Fatalln("failed to write messages:", err)
+	// produce messages to the topic
+	if err := w.WriteMessages(context.Background(), messages...); err != nil {
+		log.Println("failed to write messages:", err)
+		return err
 	}
 
 	return nil
