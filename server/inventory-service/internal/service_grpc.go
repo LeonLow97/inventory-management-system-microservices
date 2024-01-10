@@ -3,7 +3,7 @@ package inventory
 import (
 	"log"
 
-	"github.com/LeonLow97/internal/kafkago"
+	"github.com/LeonLow97/pkg/kafkago"
 )
 
 type service struct {

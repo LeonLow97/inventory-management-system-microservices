@@ -8,7 +8,7 @@ import (
 	"os"
 
 	inventory "github.com/LeonLow97/internal"
-	kafkago "github.com/LeonLow97/internal/kafkago"
+	"github.com/LeonLow97/pkg/kafkago"
 	pb "github.com/LeonLow97/proto"
 	_ "github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc"
