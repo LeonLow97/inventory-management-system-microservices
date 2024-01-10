@@ -5,7 +5,7 @@ import (
 	"log"
 
 	grpcclient "github.com/LeonLow97/internal/grpc"
-	"github.com/LeonLow97/internal/kafkago"
+	kafkago "github.com/LeonLow97/pkg/kafkago"
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
@@ -68,6 +68,7 @@ func (s service) CreateOrder(req CreateOrderDTO) error {
 
 	orderEvent := OrderEvent{
 		OrderUUID: orderUUID,
+		ProductID: int(resp.ProductID),
 		UserID:    req.UserID,
 		Quantity:  req.Quantity,
 	}

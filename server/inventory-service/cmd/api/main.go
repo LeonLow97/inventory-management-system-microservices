@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -46,21 +47,32 @@ func main() {
 	defer conn.Close()
 	defer controllerConn.Close()
 
+	// TODO: Move to handler
 	// Consume messages from order management microservice
-	messageChan := make(chan kafkago.OrderEvent)
+	messageChan := make(chan interface{})
 	errorChan := make(chan error)
+
 	go segmentioInstance.Consumer(brokerAddress, topicDecrementInventory, messageChan, errorChan)
 	for {
 		select {
 		case msg := <-messageChan:
+			var orderEvent kafkago.OrderEvent
+			if err := json.Unmarshal(msg.([]byte), &orderEvent); err != nil {
+				log.Println("error unmarshaling message:", err)
+				continue
+			}
 			fmt.Println("received order")
-			fmt.Printf("Action: %s, UserID: %d, Quantity: %d\n", msg.Action, msg.UserID, msg.Quantity)
+			fmt.Printf("Action: %s, UserID: %d, Quantity: %d, ProductID: %d\n", orderEvent.Action, orderEvent.UserID, orderEvent.Quantity, orderEvent.ProductID)
 		case err := <-errorChan:
 			fmt.Println("Error reading order", err)
 		}
 	}
 
 	select {}
+}
+
+func (app *application) consumeKafkaTopic() {
+
 }
 
 func (app *application) initiateGRPCServer(db *sql.DB) {

@@ -89,7 +89,6 @@ func (app *application) ipWhitelistMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()
 		if !isAllowedIP(clientIP) {
-			// TODO: Might need to fix this error handling way
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
 			return
 		}

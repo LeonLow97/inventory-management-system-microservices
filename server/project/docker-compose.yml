@@ -109,6 +109,8 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    volumes:
+      - ./config:/app/config
     environment:
       POSTGRES_USER: order-postgres
       POSTGRES_PASSWORD: password

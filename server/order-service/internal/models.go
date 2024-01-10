@@ -2,6 +2,7 @@ package order
 
 type OrderEvent struct {
 	OrderUUID string `json:"order_uuid"`
+	ProductID int    `json:"product_id"`
 	UserID    int    `json:"user_id"`
 	Quantity  int    `json:"quantity"`
 }

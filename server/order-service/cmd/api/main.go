@@ -6,9 +6,13 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"time"
 
 	order "github.com/LeonLow97/internal"
-	kafkago "github.com/LeonLow97/internal/kafkago"
+	"github.com/LeonLow97/pkg/aws"
+	"github.com/LeonLow97/pkg/config"
+	kafkago "github.com/LeonLow97/pkg/kafkago"
+	s3client "github.com/LeonLow97/pkg/s3"
 	pb "github.com/LeonLow97/proto"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
@@ -28,12 +32,37 @@ type grpcClientConn struct {
 }
 
 func main() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalln("Failed to load config", err)
+	}
+
 	app := application{}
 
 	db, err := app.connectToDB()
 	if err != nil {
 		log.Fatalf("failed to connect to postgres db: %v\n", err)
 	}
+
+	// initialize session with aws
+	awsSession, err := aws.NewSession(cfg)
+	if err != nil {
+		log.Fatalln("error getting aws session", err)
+	}
+
+	// initialize session with s3
+	s3Session := s3client.NewS3(awsSession, 10*time.Second)
+
+	// fileContent := `This is a test file generated from Golang by Jie Wei!`
+	// reader := strings.NewReader(fileContent)
+
+	// // test s3 upload object
+	// fmt.Println("Bucket name", cfg.AWS.Bucket)
+	// loc, err := s3Session.UploadObject(context.Background(), cfg.AWS.Bucket, "/test/temp.txt", reader)
+	// if err != nil {
+	// 	log.Fatalln("error uploading object to s3", err)
+	// }
+	// fmt.Println("location", loc)
 
 	// initiate kafka-go segmentio instance
 	segmentioInstance := kafkago.NewSegmentio()
@@ -52,7 +81,7 @@ func main() {
 	grpcClients := app.initiateGRPCClients()
 	defer grpcClients.inventoryConn.Close()
 
-	app.setupDBDependencies(db, segmentioInstance, grpcClients, kafkaConfigUpdateInventoryCount)
+	app.setupDBDependencies(db, segmentioInstance, grpcClients, kafkaConfigUpdateInventoryCount, s3Session)
 
 	// running grpc server in the background
 	go app.initiateGRPCServer(db, segmentioInstance, kafkaConfigUpdateInventoryCount)

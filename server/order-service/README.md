@@ -38,3 +38,7 @@ kafka-console-producer --topic test-topic --bootstrap-server localhost:9092
 // Read Topic
 kafka-console-consumer --topic test-topic --from-beginning --bootstrap-server localhost:9092
 ```
+
+### Folder Structure
+
+- [Folder Structure](https://martengartner.medium.com/my-favourite-go-project-setup-479563662834)

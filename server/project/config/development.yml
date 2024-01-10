@@ -1,0 +1,8 @@
+aws:
+  region: 'ap-southeast-1'
+  endpoint: 'http://host.docker.internal:4566'
+  bucket: 'development-bucket-ims'
+  s3_force_path_style: true
+  credentials:
+    id: dev-access
+    secret: dev-secret
