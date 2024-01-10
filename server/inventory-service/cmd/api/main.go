@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -19,6 +18,7 @@ var inventoryServicePort = os.Getenv("SERVICE_PORT")
 
 const (
 	topicDecrementInventory = "update-inventory-count"
+	topicUpdateOrderStatus  = "update-order-status"
 	brokerAddress           = "broker:9092"
 )
 
@@ -31,14 +31,11 @@ func main() {
 	db := app.connectToDB()
 	defer db.Close()
 
-	app.setupDBDependencies(db)
-
-	go app.initiateGRPCServer(db)
-
 	// initiate kafka-go segmentio instance
 	segmentioInstance := kafkago.NewSegmentio()
 
 	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
+	segmentioInstance.AddTopicConfig(topicUpdateOrderStatus, 1, 1)
 	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
 	if err != nil {
 		log.Fatalln("Unable to create kafka topics", err)
@@ -47,41 +44,45 @@ func main() {
 	defer conn.Close()
 	defer controllerConn.Close()
 
+	inventoryRepo := inventory.NewRepository(db)
+	inventoryService := inventory.NewService(inventoryRepo, segmentioInstance)
+	inventory.NewInventoryGRPCHandler(inventoryService)
+
+	go app.initiateGRPCServer(db, segmentioInstance)
+
+	inventoryService.ConsumeKafkaUpdateInventoryCount()
+
 	// TODO: Move to handler
 	// Consume messages from order management microservice
-	messageChan := make(chan interface{})
-	errorChan := make(chan error)
+	// messageChan := make(chan interface{})
+	// errorChan := make(chan error)
 
-	go segmentioInstance.Consumer(brokerAddress, topicDecrementInventory, messageChan, errorChan)
-	for {
-		select {
-		case msg := <-messageChan:
-			var orderEvent kafkago.OrderEvent
-			if err := json.Unmarshal(msg.([]byte), &orderEvent); err != nil {
-				log.Println("error unmarshaling message:", err)
-				continue
-			}
-			fmt.Println("received order")
-			fmt.Printf("Action: %s, UserID: %d, Quantity: %d, ProductID: %d\n", orderEvent.Action, orderEvent.UserID, orderEvent.Quantity, orderEvent.ProductID)
-		case err := <-errorChan:
-			fmt.Println("Error reading order", err)
-		}
-	}
+	// go segmentioInstance.Consumer(brokerAddress, topicDecrementInventory, messageChan, errorChan)
+	// for {
+	// 	select {
+	// 	case msg := <-messageChan:
+	// 		var orderEvent kafkago.OrderEvent
+	// 		if err := json.Unmarshal(msg.([]byte), &orderEvent); err != nil {
+	// 			log.Println("error unmarshaling message:", err)
+	// 			continue
+	// 		}
+	// 		fmt.Println("received order")
+	// 		fmt.Printf("Action: %s, UserID: %d, Quantity: %d, ProductID: %d\n", orderEvent.Action, orderEvent.UserID, orderEvent.Quantity, orderEvent.ProductID)
+	// 	case err := <-errorChan:
+	// 		fmt.Println("Error reading order", err)
+	// 	}
+	// }
 
 	select {}
 }
 
-func (app *application) consumeKafkaTopic() {
-
-}
-
-func (app *application) initiateGRPCServer(db *sql.DB) {
+func (app *application) initiateGRPCServer(db *sql.DB, segmentioInstance *kafkago.Segmentio) {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", inventoryServicePort))
 	if err != nil {
 		log.Fatalf("Failed to start the grpc server with error: %v", err)
 	}
 
-	inventoryService := inventory.NewService(inventory.NewRepository(db))
+	inventoryService := inventory.NewService(inventory.NewRepository(db), segmentioInstance)
 
 	// creates a new grpc server
 	grpcServer := grpc.NewServer()
