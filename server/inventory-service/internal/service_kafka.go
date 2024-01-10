@@ -32,7 +32,7 @@ func (s service) ConsumeKafkaUpdateInventoryCount() error {
 			}
 
 			// simulate order processing, in reality we may have tons of orders and the queue will take a long time
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Second * 10)
 
 			// TODO: run in database transaction
 			// get inventory count and determine if sufficient for order
@@ -84,7 +84,7 @@ func (s service) ConsumeKafkaUpdateInventoryCount() error {
 				orderEventResp.RemainingQuantity = finalQuantity
 			}
 
-			jsonData, err := json.Marshal(orderEvent)
+			jsonData, err := json.Marshal(orderEventResp)
 			if err != nil {
 				log.Println("error marshaling order event", err)
 				break

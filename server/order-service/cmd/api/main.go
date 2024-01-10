@@ -6,13 +6,11 @@ import (
 	"net"
 	"os"
 	"regexp"
-	"time"
 
 	order "github.com/LeonLow97/internal"
-	"github.com/LeonLow97/pkg/aws"
+	grpcclient "github.com/LeonLow97/internal/grpc"
 	"github.com/LeonLow97/pkg/config"
 	kafkago "github.com/LeonLow97/pkg/kafkago"
-	s3client "github.com/LeonLow97/pkg/s3"
 	pb "github.com/LeonLow97/proto"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
@@ -23,6 +21,14 @@ import (
 
 var orderServicePort = os.Getenv("SERVICE_PORT")
 
+const (
+	topicDecrementInventory = "update-inventory-count"
+	topicUpdateOrderStatus  = "update-order-status"
+	brokerAddress           = "broker:9092"
+
+	INVENTORY_SERVICE_URL = "inventory-service:8002"
+)
+
 type application struct {
 	orderService *order.OrderGRPCServer
 }
@@ -32,7 +38,7 @@ type grpcClientConn struct {
 }
 
 func main() {
-	cfg, err := config.LoadConfig()
+	_, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalln("Failed to load config", err)
 	}
@@ -44,14 +50,14 @@ func main() {
 		log.Fatalf("failed to connect to postgres db: %v\n", err)
 	}
 
-	// initialize session with aws
-	awsSession, err := aws.NewSession(cfg)
-	if err != nil {
-		log.Fatalln("error getting aws session", err)
-	}
+	// // initialize session with aws
+	// awsSession, err := aws.NewSession(cfg)
+	// if err != nil {
+	// 	log.Fatalln("error getting aws session", err)
+	// }
 
-	// initialize session with s3
-	s3Session := s3client.NewS3(awsSession, 10*time.Second)
+	// // initialize session with s3
+	// s3Session := s3client.NewS3(awsSession, 10*time.Second)
 
 	// fileContent := `This is a test file generated from Golang by Jie Wei!`
 	// reader := strings.NewReader(fileContent)
@@ -68,8 +74,10 @@ func main() {
 	segmentioInstance := kafkago.NewSegmentio()
 
 	// add update inventory count topic to kafka
-	kafkaConfigUpdateInventoryCount := kafkago.NewKafkaConfig("broker:9092", "update-inventory-count")
-	conn, controllerConn, err := segmentioInstance.CreateTopics(kafkaConfigUpdateInventoryCount.BrokerAddress)
+	kafkaConfigUpdateInventoryCount := kafkago.NewKafkaConfig(brokerAddress, topicDecrementInventory)
+	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
+	segmentioInstance.AddTopicConfig(topicUpdateOrderStatus, 1, 1)
+	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
 	if err != nil {
 		log.Fatalln("Unable to create kafka topics", err)
 	} else {
@@ -78,13 +86,21 @@ func main() {
 	defer conn.Close()
 	defer controllerConn.Close()
 
+	// initialize grpc clients
 	grpcClients := app.initiateGRPCClients()
 	defer grpcClients.inventoryConn.Close()
 
-	app.setupDBDependencies(db, segmentioInstance, grpcClients, kafkaConfigUpdateInventoryCount, s3Session)
+	inventoryServiceClient := grpcclient.NewInventoryGRPCClient(grpcClients.inventoryConn)
+
+	orderRepo := order.NewRepository(db)
+	segmentioInstance.AddTopicConfig(kafkaConfigUpdateInventoryCount.TopicName, 1, 1)
+	orderService := order.NewService(orderRepo, segmentioInstance, inventoryServiceClient, kafkaConfigUpdateInventoryCount)
+	app.orderService = order.NewOrderGRPCHandler(orderService)
 
 	// running grpc server in the background
 	go app.initiateGRPCServer(db, segmentioInstance, kafkaConfigUpdateInventoryCount)
+
+	orderService.ConsumeKafkaUpdateOrderStatus()
 
 	select {}
 }

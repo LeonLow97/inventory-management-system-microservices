@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,6 +14,7 @@ type Repository interface {
 	GetOrders(req GetOrdersDTO) (*[]Order, error)
 	GetOrderByID(req GetOrderDTO) (*Order, error)
 	CreateOrder(req CreateOrderDTO, productID int) error
+	UpdateOrderByUUID(req UpdateOrderDTO) error
 }
 
 type repo struct {
@@ -25,6 +27,28 @@ func NewRepository(db *sqlx.DB) Repository {
 	}
 }
 
+func (r repo) UpdateOrderByUUID(req UpdateOrderDTO) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	query := `
+		UPDATE orders
+		SET status = $1, status_reason = $2
+		WHERE order_uuid = $3;
+	`
+
+	_, err := r.db.ExecContext(ctx, query,
+		req.Status,
+		req.StatusReason,
+		req.OrderUUID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r repo) GetOrders(req GetOrdersDTO) (*[]Order, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -32,7 +56,7 @@ func (r repo) GetOrders(req GetOrdersDTO) (*[]Order, error) {
 	query := `
 		SELECT id, product_id, customer_name, brand_name, category_name, 
 			color, size, quantity, description, revenue, cost, profit, has_reviewed, 
-			created_at, updated_at
+			status, status_reason, order_uuid, created_at, updated_at
 		FROM orders
 		WHERE user_id = $1;
 	`
@@ -55,7 +79,7 @@ func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
 	query := `
 		SELECT id, product_id, customer_name, brand_name, category_name, 
 			color, size, quantity, description, revenue, cost, profit, has_reviewed, 
-			created_at, updated_at
+			status, status_reason, order_uuid, created_at, updated_at
 		FROM orders
 		WHERE user_id = $1 AND id = $2;
 	`
@@ -75,6 +99,9 @@ func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
 		&order.Cost,
 		&order.Profit,
 		&order.HasReviewed,
+		&order.Status,
+		&order.StatusReason,
+		&order.OrderUUID,
 		&order.CreatedAt,
 		&order.UpdatedAt,
 	); err != nil {
@@ -83,6 +110,8 @@ func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
 		}
 		return nil, err
 	}
+
+	fmt.Println(order.OrderUUID, order.Status, order.StatusReason)
 
 	return &order, nil
 }

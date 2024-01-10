@@ -50,6 +50,8 @@ func (s *OrderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersReques
 				Cost:         float32(order.Cost),
 				Profit:       float32(order.Profit),
 				HasReviewed:  order.HasReviewed,
+				Status:       order.Status,
+				StatusReason: order.StatusReason,
 				CreatedAt:    order.CreatedAt,
 			})
 		}
@@ -86,6 +88,8 @@ func (s *OrderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest)
 			Cost:         float32(order.Cost),
 			Profit:       float32(order.Profit),
 			HasReviewed:  order.HasReviewed,
+			Status:       order.Status,
+			StatusReason: order.StatusReason,
 			CreatedAt:    order.CreatedAt,
 		}, nil
 	}

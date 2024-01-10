@@ -34,7 +34,9 @@ message Order {
     float cost = 11;
     float profit = 12;
     bool has_reviewed = 13;
-    string created_at = 14;
+    string status = 14;
+    string status_reason = 15;
+    string created_at = 16;
 }
 
 message GetOrdersResponse {

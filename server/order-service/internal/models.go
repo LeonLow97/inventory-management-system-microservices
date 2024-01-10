@@ -1,12 +1,5 @@
 package order
 
-type OrderEvent struct {
-	OrderUUID string `json:"order_uuid"`
-	ProductID int    `json:"product_id"`
-	UserID    int    `json:"user_id"`
-	Quantity  int    `json:"quantity"`
-}
-
 type GetOrdersDTO struct {
 	UserID int
 }
@@ -35,6 +28,12 @@ type CreateOrderDTO struct {
 	OrderUUID    string
 }
 
+type UpdateOrderDTO struct {
+	OrderUUID    string
+	Status       string
+	StatusReason string
+}
+
 type Order struct {
 	OrderID      int    `db:"id"`
 	ProductID    int    `db:"product_id"`
@@ -48,6 +47,9 @@ type Order struct {
 	Revenue      int64  `db:"revenue"`
 	Cost         int64  `db:"cost"`
 	Profit       int64  `db:"profit"`
+	Status       string `db:"status"`
+	StatusReason string `db:"status_reason"`
+	OrderUUID    string `db:"order_uuid"`
 	HasReviewed  bool   `db:"has_reviewed"`
 	UpdatedAt    string `db:"updated_at"`
 	CreatedAt    string `db:"created_at"`
