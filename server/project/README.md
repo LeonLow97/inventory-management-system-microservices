@@ -1,4 +1,14 @@
-## Project Setup
+# Inventory Management System
+
+## Problem Statement
+
+## Assumptions
+
+## Tools and Technologies
+
+## Endpoints
+
+
 
 ### AWS CLI Commands (LocalStack)
 

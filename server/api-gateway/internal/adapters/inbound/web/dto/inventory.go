@@ -1,4 +1,24 @@
-package models
+package dto
+
+type Product struct {
+	BrandName    string `json:"brand_name,omitempty"`
+	CategoryName string `json:"category_name,omitempty"`
+	ProductName  string `json:"product_name,omitempty"`
+	Description  string `json:"description,omitempty"`
+	Size         string `json:"size,omitempty"`
+	Color        string `json:"color,omitempty"`
+	Quantity     int32  `json:"quantity,omitempty"`
+	CreatedAt    string `json:"created_at,omitempty"`
+	UpdatedAt    string `json:"updated_at,omitempty"`
+}
+
+type GetProductsResponse struct {
+	Products []Product `json:"products"`
+}
+
+type GetProductByIDResponse struct {
+	Product
+}
 
 type CreateProductRequest struct {
 	BrandName    string `json:"brand_name" validate:"required,min=1,max=100"`

@@ -1,8 +1,18 @@
-package models
+package dto
 
-type AuthRequest struct {
+type LoginRequest struct {
 	Username string `json:"username" validate:"required,min=5,max=50"`
 	Password string `json:"password" validate:"required,min=8,max=20"`
+}
+
+type LoginResponse struct {
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Active    int32  `json:"active,omitempty"`
+	Admin     int32  `json:"admin,omitempty"`
+	Token     string `json:"token,omitempty"`
 }
 
 type SignUpRequest struct {

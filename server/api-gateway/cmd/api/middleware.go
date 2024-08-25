@@ -52,7 +52,7 @@ func (app *application) authenticationMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return []byte(JWT_SECRET_KEY), nil
+			return []byte(app.Config.JWT.Secret), nil
 		})
 
 		if err != nil || !token.Valid {
