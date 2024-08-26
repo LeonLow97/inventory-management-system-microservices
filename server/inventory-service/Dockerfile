@@ -1,7 +1,18 @@
-FROM alpine:latest
+FROM golang:alpine
 
-RUN mkdir /app
+WORKDIR /app
 
-COPY inventoryApp /app
+COPY go.mod .
+COPY go.sum .
 
-CMD ["/app/inventoryApp"]
+RUN go mod download
+
+COPY . .
+
+ENV GOOS=linux CGO_ENABLED=0
+
+RUN go build -o inventoryService ./cmd/api
+
+EXPOSE 8001
+
+CMD ["./inventoryService"]

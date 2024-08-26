@@ -2,12 +2,18 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	ginzap "github.com/gin-contrib/zap"
 )
 
 func (app *application) routes() *gin.Engine {
 	router := gin.Default()
+
+	// Set Gin to use Zap as logger
+	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+	router.Use(ginzap.RecoveryWithZap(logger, true))
 
 	router.Use(app.ipWhitelistMiddleware())
 	router.Use(app.rateLimitMiddleware())

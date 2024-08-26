@@ -1,8 +1,20 @@
-FROM alpine:latest
+FROM golang:alpine
 
-RUN mkdir /app
+# RUN mkdir -p /var/log/api-gateway
 
-COPY apiGateway /app
-COPY config /app/config
+WORKDIR /app
 
-CMD ["/app/apiGateway"]
+COPY go.mod .
+COPY go.sum .
+
+RUN go mod download
+
+COPY . .
+
+ENV GOOS=linux CGO_ENABLED=0
+
+RUN go build -o apiGateway ./cmd/api
+
+EXPOSE 80
+
+CMD ["./apiGateway"]
