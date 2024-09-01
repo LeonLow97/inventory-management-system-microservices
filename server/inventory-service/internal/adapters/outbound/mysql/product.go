@@ -1,37 +1,26 @@
-package inventory
+package outbound_mysql
 
 import (
 	"context"
 	"database/sql"
 	"log"
 	"time"
+
+	"github.com/LeonLow97/internal/core/domain"
+	"github.com/LeonLow97/internal/ports"
 )
 
-type Repository interface {
-	GetProducts(userID int) (*[]Product, error)
-	GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error)
-	GetProductByName(req GetProductDetailsDTO) (*Product, error)
-
-	GetBrandByName(brandName string) (*Brand, error)
-	GetCategoryByName(categoryName string) (*Category, error)
-
-	CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error
-
-	UpdateProductByID(updateProductDTO UpdateProductDTO) error
-	DeleteProductByID(req DeleteProductDTO) error
-}
-
-type MySQLRepo struct {
+type MySQLAdapter struct {
 	db *sql.DB
 }
 
-func NewRepository(db *sql.DB) Repository {
-	return &MySQLRepo{
+func NewMySQLAdapter(db *sql.DB) ports.Repository {
+	return &MySQLAdapter{
 		db: db,
 	}
 }
 
-func (r *MySQLRepo) GetProducts(userID int) (*[]Product, error) {
+func (r *MySQLAdapter) GetProducts(userID int) (*[]domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -50,9 +39,9 @@ func (r *MySQLRepo) GetProducts(userID int) (*[]Product, error) {
 	}
 	defer rows.Close()
 
-	var products []Product
+	var products []domain.Product
 	for rows.Next() {
-		var product Product
+		var product domain.Product
 		err := rows.Scan(
 			&product.BrandName,
 			&product.CategoryName,
@@ -80,7 +69,7 @@ func (r *MySQLRepo) GetProducts(userID int) (*[]Product, error) {
 	return &products, nil
 }
 
-func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Product, error) {
+func (r *MySQLAdapter) GetProductByID(userID, productID int) (*domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -93,9 +82,9 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 		WHERE p.user_id = ? AND p.id = ? AND p.is_deleted = 0;
 	`
 
-	var product Product
+	var product domain.Product
 	if err := r.db.QueryRowContext(
-		ctx, query, getProductByIdDTO.UserID, getProductByIdDTO.ProductID,
+		ctx, query, userID, productID,
 	).Scan(
 		&product.BrandName,
 		&product.CategoryName,
@@ -116,7 +105,7 @@ func (r *MySQLRepo) GetProductByID(getProductByIdDTO GetProductByIdDTO) (*Produc
 	return &product, nil
 }
 
-func (r *MySQLRepo) GetProductByName(req GetProductDetailsDTO) (*Product, error) {
+func (r *MySQLAdapter) GetProductByName(userID int, productName string) (*domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -129,9 +118,9 @@ func (r *MySQLRepo) GetProductByName(req GetProductDetailsDTO) (*Product, error)
 		WHERE p.user_id = ? AND p.name = ? AND p.is_deleted = 0;
 	`
 
-	var product Product
+	var product domain.Product
 	if err := r.db.QueryRowContext(
-		ctx, query, req.UserID, req.ProductName,
+		ctx, query, userID, productName,
 	).Scan(
 		&product.ID,
 		&product.BrandName,
@@ -153,7 +142,7 @@ func (r *MySQLRepo) GetProductByName(req GetProductDetailsDTO) (*Product, error)
 	return &product, nil
 }
 
-func (r *MySQLRepo) GetBrandByName(brandName string) (*Brand, error) {
+func (r *MySQLAdapter) GetBrandByName(brandName string) (*domain.Brand, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -161,7 +150,7 @@ func (r *MySQLRepo) GetBrandByName(brandName string) (*Brand, error) {
 		SELECT id, name, created_at FROM brands WHERE name = ?;
 	`
 
-	var brand Brand
+	var brand domain.Brand
 	if err := r.db.QueryRowContext(ctx, query, brandName).Scan(
 		&brand.ID,
 		&brand.Name,
@@ -177,7 +166,7 @@ func (r *MySQLRepo) GetBrandByName(brandName string) (*Brand, error) {
 	return &brand, nil
 }
 
-func (r *MySQLRepo) GetCategoryByName(categoryName string) (*Category, error) {
+func (r *MySQLAdapter) GetCategoryByName(categoryName string) (*domain.Category, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -185,7 +174,7 @@ func (r *MySQLRepo) GetCategoryByName(categoryName string) (*Category, error) {
 		SELECT id, name, created_at FROM categories WHERE name = ?;
 	`
 
-	var category Category
+	var category domain.Category
 	if err := r.db.QueryRowContext(ctx, query, categoryName).Scan(
 		&category.ID,
 		&category.Name,
@@ -201,7 +190,7 @@ func (r *MySQLRepo) GetCategoryByName(categoryName string) (*Category, error) {
 	return &category, nil
 }
 
-func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO, brandID, categoryID int) error {
+func (r *MySQLAdapter) CreateProduct(req domain.Product, userID, brandID, categoryID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -213,14 +202,14 @@ func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO, brandID, ca
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
-		createProductDTO.UserID,
+		userID,
 		brandID,
 		categoryID,
-		createProductDTO.ProductName,
-		createProductDTO.Description,
-		createProductDTO.Size,
-		createProductDTO.Color,
-		createProductDTO.Quantity)
+		req.ProductName,
+		req.Description,
+		req.Size,
+		req.Color,
+		req.Quantity)
 	if err != nil {
 		log.Println("Error creating product", err)
 		return err
@@ -229,7 +218,7 @@ func (r *MySQLRepo) CreateProduct(createProductDTO CreateProductDTO, brandID, ca
 	return nil
 }
 
-func (r *MySQLRepo) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
+func (r *MySQLAdapter) UpdateProductByID(req domain.Product, brandID, categoryID, userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -247,15 +236,15 @@ func (r *MySQLRepo) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
-		updateProductDTO.BrandID,
-		updateProductDTO.CategoryID,
-		updateProductDTO.ProductName,
-		updateProductDTO.Description,
-		updateProductDTO.Size,
-		updateProductDTO.Color,
-		updateProductDTO.Quantity,
-		updateProductDTO.UserID,
-		updateProductDTO.ProductID,
+		brandID,
+		categoryID,
+		req.ProductName,
+		req.Description,
+		req.Size,
+		req.Color,
+		req.Quantity,
+		userID,
+		productID,
 	)
 	if err != nil {
 		log.Println("Error updating product", err)
@@ -265,7 +254,22 @@ func (r *MySQLRepo) UpdateProductByID(updateProductDTO UpdateProductDTO) error {
 	return nil
 }
 
-func (r *MySQLRepo) DeleteProductByID(req DeleteProductDTO) error {
+func (r *MySQLAdapter) UpdateProductQuantityByID(quantity, userID, productID int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	query := `
+		UPDATE products
+		SET
+			quantity = ?
+		WHERE user_id = ? AND id = ?
+	`
+
+	_, err := r.db.ExecContext(ctx, query, quantity, userID, productID)
+	return err
+}
+
+func (r *MySQLAdapter) DeleteProductByID(userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -277,8 +281,8 @@ func (r *MySQLRepo) DeleteProductByID(req DeleteProductDTO) error {
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
-		req.UserID,
-		req.ProductID,
+		userID,
+		productID,
 	)
 	if err != nil {
 		log.Println("Error performing soft delete on product", err)

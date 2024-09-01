@@ -1,4 +1,4 @@
-package inventory
+package outbound_mysql
 
 import "errors"
 

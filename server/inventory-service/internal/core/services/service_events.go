@@ -1,49 +1,48 @@
-package inventory
+package services
 
 import (
 	"encoding/json"
 	"log"
-	"time"
 
+	"github.com/LeonLow97/internal/ports"
 	"github.com/LeonLow97/pkg/kafkago"
 	"github.com/segmentio/kafka-go"
 )
 
-func (s service) ConsumeKafkaUpdateInventoryCount() error {
-	const (
-		topicDecrementInventory = "update-inventory-count"
-		topicUpdateOrderStatus  = "update-order-status"
-		brokerAddress           = "broker:9092"
-	)
+type ServiceEvents interface {
+	ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic, produceTopic string) error
+}
 
-	var (
-		messageChan = make(chan interface{})
-		errorChan   = make(chan error)
-	)
+type serviceEvents struct {
+	repo     ports.Repository
+	eventBus ports.EventBus
+}
 
-	go s.segmentioInstance.Consumer(brokerAddress, topicDecrementInventory, messageChan, errorChan)
+func NewServiceEvents(repo ports.Repository, eventBus ports.EventBus) ServiceEvents {
+	return &serviceEvents{
+		repo:     repo,
+		eventBus: eventBus,
+	}
+}
+
+func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic, produceTopic string) error {
+	messageChan := make(chan interface{})
+	errorChan := make(chan error)
+
+	s.eventBus.ConsumeOrderMessage(brokerAddress, consumeTopic, messageChan, errorChan)
 	for {
 		select {
 		case msg := <-messageChan:
 			var orderEvent kafkago.OrderEvent
 			if err := json.Unmarshal(msg.([]byte), &orderEvent); err != nil {
-				log.Println("error unmarshaling message:", err)
+				log.Println("failed to unmarshal message when consuming event:", err)
 				continue
 			}
 
-			// simulate order processing, in reality we may have tons of orders and the queue will take a long time
-			time.Sleep(time.Second * 10)
-
-			// TODO: run in database transaction
-			// get inventory count and determine if sufficient for order
-			dto := GetProductByIdDTO{
-				UserID:    orderEvent.UserID,
-				ProductID: orderEvent.ProductID,
-			}
-			product, err := s.repo.GetProductByID(dto)
+			product, err := s.repo.GetProductByID(orderEvent.UserID, orderEvent.ProductID)
 			if err != nil {
-				// stop processing messages
-				log.Println("error getting product by id in kafka consumer", err)
+				// stop processing the event
+				log.Println("failed to get product by id when consuming event", err)
 				break
 			}
 
@@ -68,12 +67,8 @@ func (s service) ConsumeKafkaUpdateInventoryCount() error {
 				// sufficient inventory
 				// deduct inventory count and update quantity in database
 				finalQuantity := product.Quantity - orderEvent.Quantity
-				updateProduct := UpdateProductDTO{
-					UserID:    orderEvent.UserID,
-					ProductID: orderEvent.ProductID,
-					Quantity:  finalQuantity,
-				}
-				if err := s.repo.UpdateProductByID(updateProduct); err != nil {
+
+				if err := s.repo.UpdateProductQuantityByID(finalQuantity, orderEvent.UserID, orderEvent.ProductID); err != nil {
 					log.Println("error updating product quantity when consuming message:", err)
 					break
 				}
@@ -97,8 +92,8 @@ func (s service) ConsumeKafkaUpdateInventoryCount() error {
 			}
 
 			go func() {
-				if err := s.segmentioInstance.Producer(brokerAddress, topicUpdateOrderStatus, updateOrderEvent); err != nil {
-					log.Printf("failed to produce message for %s topic, order_uuid: %s, error: %v\n", topicDecrementInventory, orderEvent.OrderUUID, err)
+				if err := s.eventBus.ProduceOrderMessage(brokerAddress, produceTopic, updateOrderEvent); err != nil {
+					log.Printf("failed to produce message for %s topic, order_uuid: %s, error: %v\n", produceTopic, orderEvent.OrderUUID, err)
 				}
 			}()
 		case err := <-errorChan:

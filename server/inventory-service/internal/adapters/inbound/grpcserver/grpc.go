@@ -1,22 +1,25 @@
-package inventory
+package grpcserver
 
 import (
 	"context"
 	"errors"
 	"log"
 
+	outbound_mysql "github.com/LeonLow97/internal/adapters/outbound/mysql"
+	"github.com/LeonLow97/internal/core/domain"
+	"github.com/LeonLow97/internal/core/services"
 	pb "github.com/LeonLow97/proto"
+	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type inventoryGRPCServer struct {
-	service Service
+	service services.Service
 	pb.InventoryServiceServer
 }
 
-func NewInventoryGRPCHandler(s Service) *inventoryGRPCServer {
+func NewInventoryGRPCServer(s services.Service) *inventoryGRPCServer {
 	return &inventoryGRPCServer{
 		service: s,
 	}
@@ -25,15 +28,15 @@ func NewInventoryGRPCHandler(s Service) *inventoryGRPCServer {
 func (s *inventoryGRPCServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest) (*pb.GetProductsResponse, error) {
 	products, err := s.service.GetProducts(int(req.UserID))
 	switch {
-	case errors.Is(err, ErrProductsNotFound):
+	case errors.Is(err, outbound_mysql.ErrProductsNotFound):
 		return nil, status.Error(codes.NotFound, "No Products found for the given User ID")
 	case err != nil:
 		return nil, status.Error(codes.Internal, "Internal Server Error")
 	}
 
-	var pbProducts []*pb.Product
-	for _, product := range *products {
-		pbProducts = append(pbProducts, &pb.Product{
+	pbProducts := make([]*pb.Product, len(*products))
+	for i, product := range *products {
+		pbProducts[i] = &pb.Product{
 			BrandName:    product.BrandName,
 			CategoryName: product.CategoryName,
 			ProductName:  product.ProductName,
@@ -43,7 +46,7 @@ func (s *inventoryGRPCServer) GetProducts(ctx context.Context, req *pb.GetProduc
 			Quantity:     int32(product.Quantity),
 			CreatedAt:    product.CreatedAt,
 			UpdatedAt:    product.UpdatedAt,
-		})
+		}
 	}
 
 	return &pb.GetProductsResponse{
@@ -60,14 +63,9 @@ func (s *inventoryGRPCServer) GetProductByID(ctx context.Context, req *pb.GetPro
 		return nil, status.Error(codes.InvalidArgument, "ProductID must be greater than 0")
 	}
 
-	getProductByIdDTO := &GetProductByIdDTO{
-		UserID:    int(req.UserID),
-		ProductID: int(req.ProductID),
-	}
-
-	product, err := s.service.GetProductByID(*getProductByIdDTO)
+	product, err := s.service.GetProductByID(int(req.UserID), int(req.ProductID))
 	switch {
-	case errors.Is(err, ErrProductNotFound):
+	case errors.Is(err, outbound_mysql.ErrProductNotFound):
 		log.Println(err)
 		return nil, status.Error(codes.NotFound, "Product does not exist.")
 	case err != nil:
@@ -89,8 +87,7 @@ func (s *inventoryGRPCServer) GetProductByID(ctx context.Context, req *pb.GetPro
 }
 
 func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateProductRequest) (*empty.Empty, error) {
-	createProductDTO := &CreateProductDTO{
-		UserID:       int(req.GetUserID()),
+	product := &domain.Product{
 		BrandName:    req.GetBrandName(),
 		CategoryName: req.GetCategoryName(),
 		ProductName:  req.GetProductName(),
@@ -101,13 +98,13 @@ func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateP
 	}
 
 	// sanitize data
-	createProductSanitize(createProductDTO)
+	product.Sanitize()
 
-	err := s.service.CreateProduct(*createProductDTO)
+	err := s.service.CreateProduct(*product, int(req.GetUserID()))
 	switch {
-	case errors.Is(err, ErrBrandNotFound):
+	case errors.Is(err, outbound_mysql.ErrBrandNotFound):
 		return &empty.Empty{}, status.Error(codes.NotFound, "Brand not found.")
-	case errors.Is(err, ErrCategoryNotFound):
+	case errors.Is(err, outbound_mysql.ErrCategoryNotFound):
 		return &empty.Empty{}, status.Error(codes.NotFound, "Category not found.")
 	case err != nil:
 		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
@@ -117,9 +114,7 @@ func (s *inventoryGRPCServer) CreateProduct(ctx context.Context, req *pb.CreateP
 }
 
 func (s *inventoryGRPCServer) UpdateProduct(ctx context.Context, req *pb.UpdateProductRequest) (*empty.Empty, error) {
-	updateProductDTO := &UpdateProductDTO{
-		UserID:       int(req.UserID),
-		ProductID:    int(req.ProductID),
+	product := &domain.Product{
 		BrandName:    req.GetBrandName(),
 		CategoryName: req.GetCategoryName(),
 		ProductName:  req.GetProductName(),
@@ -130,32 +125,27 @@ func (s *inventoryGRPCServer) UpdateProduct(ctx context.Context, req *pb.UpdateP
 	}
 
 	// sanitize data
-	updateProductSanitize(updateProductDTO)
+	product.Sanitize()
 
-	err := s.service.UpdateProductByID(*updateProductDTO)
-	switch {
-	case errors.Is(err, ErrBrandNotFound):
-		return &empty.Empty{}, status.Error(codes.NotFound, "Brand not found.")
-	case errors.Is(err, ErrCategoryNotFound):
-		return &empty.Empty{}, status.Error(codes.NotFound, "Category not found.")
-	case errors.Is(err, ErrProductNotFound):
-		return &empty.Empty{}, status.Error(codes.NotFound, "Product does not exist for the user.")
-	case err != nil:
-		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
-	default:
-		return &empty.Empty{}, nil
+	if err := s.service.UpdateProductByID(*product, int(req.UserID), int(req.ProductID)); err != nil {
+		switch {
+		case errors.Is(err, outbound_mysql.ErrBrandNotFound):
+			return &empty.Empty{}, status.Error(codes.NotFound, "Brand not found.")
+		case errors.Is(err, outbound_mysql.ErrCategoryNotFound):
+			return &empty.Empty{}, status.Error(codes.NotFound, "Category not found.")
+		case errors.Is(err, outbound_mysql.ErrProductNotFound):
+			return &empty.Empty{}, status.Error(codes.NotFound, "Product does not exist for the user.")
+		default:
+			return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
+		}
 	}
+	return &empty.Empty{}, nil
 }
 
 func (s *inventoryGRPCServer) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*empty.Empty, error) {
-	deleteProductDTO := &DeleteProductDTO{
-		UserID:    int(req.UserID),
-		ProductID: int(req.ProductID),
-	}
-
-	err := s.service.DeleteProductByID(*deleteProductDTO)
+	err := s.service.DeleteProductByID(int(req.UserID), int(req.ProductID))
 	switch {
-	case errors.Is(err, ErrProductNotFound):
+	case errors.Is(err, outbound_mysql.ErrProductNotFound):
 		return &empty.Empty{}, status.Error(codes.NotFound, "Product does not exist for the user.")
 	case err != nil:
 		return &empty.Empty{}, status.Error(codes.Internal, "Internal Server Error")
@@ -165,16 +155,9 @@ func (s *inventoryGRPCServer) DeleteProduct(ctx context.Context, req *pb.DeleteP
 }
 
 func (s *inventoryGRPCServer) GetProductDetails(ctx context.Context, req *pb.GetProductDetailsRequest) (*pb.GetProductDetailsResponse, error) {
-	getProductDetailsDTO := &GetProductDetailsDTO{
-		UserID:       int(req.UserID),
-		BrandName:    req.BrandName,
-		CategoryName: req.CategoryName,
-		ProductName:  req.ProductName,
-	}
-
-	product, err := s.service.GetProductByName(*getProductDetailsDTO)
+	product, err := s.service.GetProductByName(int(req.UserID), req.ProductName)
 	switch {
-	case errors.Is(err, ErrProductNotFound):
+	case errors.Is(err, outbound_mysql.ErrProductNotFound):
 		log.Println(err)
 		return nil, status.Error(codes.NotFound, "Product does not exist.")
 	case err != nil:
