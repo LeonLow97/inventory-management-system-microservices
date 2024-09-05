@@ -1,68 +1,28 @@
-package order
+package outbound
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/LeonLow97/internal/core/domain"
 )
 
-type Repository interface {
-	GetOrders(req GetOrdersDTO) (*[]Order, error)
-	GetOrderByID(req GetOrderDTO) (*Order, error)
-	CreateOrder(req CreateOrderDTO, productID int) error
-	UpdateOrderByUUID(req UpdateOrderDTO) error
-}
-
-type repo struct {
-	db *sqlx.DB
-}
-
-func NewRepository(db *sqlx.DB) Repository {
-	return &repo{
-		db: db,
-	}
-}
-
-func (r repo) UpdateOrderByUUID(req UpdateOrderDTO) error {
+func (r *Repository) GetOrders(userID int) (*[]domain.Order, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	query := `
-		UPDATE orders
-		SET status = $1, status_reason = $2
-		WHERE order_uuid = $3;
-	`
+	SELECT id, product_id, customer_name, brand_name, category_name, 
+		color, size, quantity, description, revenue, cost, profit, has_reviewed, 
+		status, status_reason, order_uuid, created_at, updated_at
+	FROM orders
+	WHERE user_id = $1;
+`
 
-	_, err := r.db.ExecContext(ctx, query,
-		req.Status,
-		req.StatusReason,
-		req.OrderUUID,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r repo) GetOrders(req GetOrdersDTO) (*[]Order, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	query := `
-		SELECT id, product_id, customer_name, brand_name, category_name, 
-			color, size, quantity, description, revenue, cost, profit, has_reviewed, 
-			status, status_reason, order_uuid, created_at, updated_at
-		FROM orders
-		WHERE user_id = $1;
-	`
-
-	var orders []Order
-	if err := r.db.SelectContext(ctx, &orders, query, req.UserID); err != nil {
+	var orders []domain.Order
+	if err := r.db.SelectContext(ctx, &orders, query, userID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoOrdersFound
 		}
@@ -72,7 +32,7 @@ func (r repo) GetOrders(req GetOrdersDTO) (*[]Order, error) {
 	return &orders, nil
 }
 
-func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
+func (r *Repository) GetOrderByID(userID, orderID int) (*domain.Order, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -84,8 +44,8 @@ func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
 		WHERE user_id = $1 AND id = $2;
 	`
 
-	var order Order
-	if err := r.db.QueryRowContext(ctx, query, req.UserID, req.OrderID).Scan(
+	var order domain.Order
+	if err := r.db.QueryRowContext(ctx, query, userID, orderID).Scan(
 		&order.OrderID,
 		&order.ProductID,
 		&order.CustomerName,
@@ -111,12 +71,10 @@ func (r repo) GetOrderByID(req GetOrderDTO) (*Order, error) {
 		return nil, err
 	}
 
-	fmt.Println(order.OrderUUID, order.Status, order.StatusReason)
-
 	return &order, nil
 }
 
-func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
+func (r *Repository) CreateOrder(req domain.Order, userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -129,10 +87,9 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 		);
 	`
 
-	//cost, profit, has_reviewed, status
 	_, err := r.db.ExecContext(ctx, query,
 		productID,
-		req.UserID,
+		userID,
 		req.CustomerName,
 		req.BrandName,
 		req.CategoryName,
@@ -150,6 +107,28 @@ func (r repo) CreateOrder(req CreateOrderDTO, productID int) error {
 	)
 	if err != nil {
 		log.Println("error creating order in repository", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateOrderByUUID(req domain.Order) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	query := `
+		UPDATE orders
+		SET status = $1, status_reason = $2
+		WHERE order_uuid = $3;
+	`
+
+	_, err := r.db.ExecContext(ctx, query,
+		req.Status,
+		req.StatusReason,
+		req.OrderUUID,
+	)
+	if err != nil {
 		return err
 	}
 

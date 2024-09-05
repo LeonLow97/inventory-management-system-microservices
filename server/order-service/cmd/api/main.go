@@ -1,22 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
 	"os"
-	"regexp"
 
-	order "github.com/LeonLow97/internal"
-	grpcclient "github.com/LeonLow97/internal/grpc"
+	"github.com/LeonLow97/internal/adapters/outbound"
+	"github.com/LeonLow97/internal/core/services"
 	"github.com/LeonLow97/pkg/config"
+	grpc_conn "github.com/LeonLow97/pkg/grpc"
 	kafkago "github.com/LeonLow97/pkg/kafkago"
-	pb "github.com/LeonLow97/proto"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/stdlib"
-	"github.com/jmoiron/sqlx"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	postgres_conn "github.com/LeonLow97/pkg/postgres"
 )
 
 var orderServicePort = os.Getenv("SERVICE_PORT")
@@ -25,30 +18,55 @@ const (
 	topicDecrementInventory = "update-inventory-count"
 	topicUpdateOrderStatus  = "update-order-status"
 	brokerAddress           = "broker:9092"
-
-	INVENTORY_SERVICE_URL = "inventory-service:8002"
 )
 
 type application struct {
-	orderService *order.OrderGRPCServer
-}
-
-type grpcClientConn struct {
-	inventoryConn *grpc.ClientConn
+	orderService services.Service
 }
 
 func main() {
-	_, err := config.LoadConfig()
+	// initiate kafka-go segmentio instance
+	segmentioInstance := kafkago.NewSegmentio()
+
+	// add update inventory count topic to kafka
+	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
+	segmentioInstance.AddTopicConfig(topicUpdateOrderStatus, 1, 1)
+	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
+	if err != nil {
+		log.Fatalln("Unable to create kafka topics", err)
+	} else {
+		log.Println("Successfully created kafka topics!")
+	}
+	defer conn.Close()
+	defer controllerConn.Close()
+
+	_, err = config.LoadConfig()
 	if err != nil {
 		log.Fatalln("Failed to load config", err)
 	}
 
-	app := application{}
+	db := postgres_conn.ConnectToDB()
+	defer db.Close()
 
-	db, err := app.connectToDB()
-	if err != nil {
-		log.Fatalf("failed to connect to postgres db: %v\n", err)
+	// initialise grpc client connections
+	grpcClient := grpc_conn.NewGRPCClient()
+	defer grpcClient.InventoryClient().Close()
+
+	// initialise grpc order server
+	orderRepo := outbound.NewRepository(db, grpcClient.InventoryClient(), segmentioInstance)
+	orderService := services.NewService(orderRepo)
+
+	app := application{
+		orderService: orderService,
 	}
+
+	go app.InitiateGRPCServer()
+
+	// initiate event bus with inventory microservice
+	events := services.NewServiceEvents(orderRepo)
+	events.ConsumeUpdateInventoryEvent(brokerAddress, topicUpdateOrderStatus)
+
+	select {}
 
 	// // initialize session with aws
 	// awsSession, err := aws.NewSession(cfg)
@@ -69,101 +87,4 @@ func main() {
 	// 	log.Fatalln("error uploading object to s3", err)
 	// }
 	// fmt.Println("location", loc)
-
-	// initiate kafka-go segmentio instance
-	segmentioInstance := kafkago.NewSegmentio()
-
-	// add update inventory count topic to kafka
-	kafkaConfigUpdateInventoryCount := kafkago.NewKafkaConfig(brokerAddress, topicDecrementInventory)
-	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
-	segmentioInstance.AddTopicConfig(topicUpdateOrderStatus, 1, 1)
-	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
-	if err != nil {
-		log.Fatalln("Unable to create kafka topics", err)
-	} else {
-		log.Println("Successfully created kafka topics!")
-	}
-	defer conn.Close()
-	defer controllerConn.Close()
-
-	// initialize grpc clients
-	grpcClients := app.initiateGRPCClients()
-	defer grpcClients.inventoryConn.Close()
-
-	inventoryServiceClient := grpcclient.NewInventoryGRPCClient(grpcClients.inventoryConn)
-
-	orderRepo := order.NewRepository(db)
-	segmentioInstance.AddTopicConfig(kafkaConfigUpdateInventoryCount.TopicName, 1, 1)
-	orderService := order.NewService(orderRepo, segmentioInstance, inventoryServiceClient, kafkaConfigUpdateInventoryCount)
-	app.orderService = order.NewOrderGRPCHandler(orderService)
-
-	// running grpc server in the background
-	go app.initiateGRPCServer(db, segmentioInstance, kafkaConfigUpdateInventoryCount)
-
-	orderService.ConsumeKafkaUpdateOrderStatus()
-
-	select {}
-}
-
-func (app *application) initiateGRPCClients() *grpcClientConn {
-	inventoryConn, err := grpc.Dial(INVENTORY_SERVICE_URL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Println("error dialing inventory microservice grpc", err)
-	}
-
-	return &grpcClientConn{
-		inventoryConn: inventoryConn,
-	}
-}
-
-func (app *application) initiateGRPCServer(db *sqlx.DB, segmentio *kafkago.Segmentio, kafkaconfig *kafkago.KafkaConfig) {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", orderServicePort))
-	if err != nil {
-		log.Fatalf("Failed to start grpc server with error: %v\n", err)
-	}
-
-	// create new grpc server
-	grpcServer := grpc.NewServer()
-
-	pb.RegisterOrderServiceServer(grpcServer, app.orderService)
-	log.Printf("Started order gRPC server at %v", lis.Addr())
-
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to start order gRPC server with error %v", err)
-	}
-}
-
-func (app *application) connectToDB() (*sqlx.DB, error) {
-	// Construct the DSN string based on environment variables
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_DB"),
-	)
-
-	connConfig, err := pgx.ParseConfig(databaseURL)
-	if err != nil {
-		errMsg := err.Error()
-		errMsg = regexp.MustCompile(`(://[^:]+:).+(@.+)`).ReplaceAllString(errMsg, "$1*****$2")
-		errMsg = regexp.MustCompile(`(password=).+(\s+)`).ReplaceAllString(errMsg, "$1*****$2")
-		return nil, fmt.Errorf("parsing DSN failed: %s", errMsg)
-	}
-	connStr := stdlib.RegisterConnConfig(connConfig)
-	db, err := sqlx.Open("pgx", connStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	// if err := runMigrations("migrations", db.DB); err != nil {
-	// 	log.Println(err)
-	// 	return nil, err
-	// }
-
-	return db, nil
 }

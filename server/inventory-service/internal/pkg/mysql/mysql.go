@@ -1,4 +1,4 @@
-package outbound_mysql
+package mysql_conn
 
 import (
 	"database/sql"

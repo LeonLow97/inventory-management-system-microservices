@@ -1,18 +1,16 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net"
 
 	"github.com/LeonLow97/internal/adapters/inbound/grpcserver"
-	"github.com/LeonLow97/pkg/kafkago"
 	pb "github.com/LeonLow97/proto"
 	"google.golang.org/grpc"
 )
 
-func (app application) InitiateGRPCServer(db *sql.DB, segmentioInstance *kafkago.Segmentio) {
+func (app application) InitiateGRPCServer() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", inventoryServicePort))
 	if err != nil {
 		log.Fatalf("Failed to start the grpc server with error: %v", err)

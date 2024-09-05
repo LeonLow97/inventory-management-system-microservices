@@ -1,4 +1,4 @@
-package outbound_mysql
+package outbound
 
 import "errors"
 

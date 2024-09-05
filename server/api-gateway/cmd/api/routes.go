@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	ginzap "github.com/gin-contrib/zap"
+	"github.com/gin-gonic/gin"
 )
 
 func (app *application) routes() *gin.Engine {

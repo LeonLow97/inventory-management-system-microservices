@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
-	outbound_kafka "github.com/LeonLow97/internal/adapters/outbound/kafka"
-	outbound_mysql "github.com/LeonLow97/internal/adapters/outbound/mysql"
+	"github.com/LeonLow97/internal/adapters/outbound"
 	"github.com/LeonLow97/internal/core/services"
-	"github.com/LeonLow97/pkg/kafkago"
+	"github.com/LeonLow97/internal/pkg/kafkago"
+	mysql_conn "github.com/LeonLow97/internal/pkg/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -37,22 +37,21 @@ func main() {
 	defer conn.Close()
 	defer controllerConn.Close()
 
-	db := outbound_mysql.ConnectToMySQL()
+	db := mysql_conn.ConnectToMySQL()
 	defer db.Close()
 
 	// initialise grpc inventory server
-	mySQLAdapter := outbound_mysql.NewMySQLAdapter(db)
-	inventoryService := services.NewService(mySQLAdapter)
+	inventoryRepo := outbound.NewRepository(db, segmentioInstance)
+	inventoryService := services.NewService(inventoryRepo)
 
 	app := &application{
 		service: inventoryService,
 	}
 
-	go app.InitiateGRPCServer(db, segmentioInstance)
+	go app.InitiateGRPCServer()
 
 	// initiate event bus with order microservice
-	eventBusAdapter := outbound_kafka.NewKafkaAdapter(segmentioInstance)
-	events := services.NewServiceEvents(mySQLAdapter, eventBusAdapter)
+	events := services.NewServiceEvents(inventoryRepo)
 	events.ConsumeUpdateInventoryEvent(brokerAddress, topicDecrementInventory, topicUpdateOrderStatus)
 
 	select {}

@@ -1,4 +1,4 @@
-package outbound_mysql
+package outbound
 
 import (
 	"context"
@@ -7,20 +7,9 @@ import (
 	"time"
 
 	"github.com/LeonLow97/internal/core/domain"
-	"github.com/LeonLow97/internal/ports"
 )
 
-type MySQLAdapter struct {
-	db *sql.DB
-}
-
-func NewMySQLAdapter(db *sql.DB) ports.Repository {
-	return &MySQLAdapter{
-		db: db,
-	}
-}
-
-func (r *MySQLAdapter) GetProducts(userID int) (*[]domain.Product, error) {
+func (r *repository) GetProducts(userID int) (*[]domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -69,7 +58,7 @@ func (r *MySQLAdapter) GetProducts(userID int) (*[]domain.Product, error) {
 	return &products, nil
 }
 
-func (r *MySQLAdapter) GetProductByID(userID, productID int) (*domain.Product, error) {
+func (r *repository) GetProductByID(userID, productID int) (*domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -105,7 +94,7 @@ func (r *MySQLAdapter) GetProductByID(userID, productID int) (*domain.Product, e
 	return &product, nil
 }
 
-func (r *MySQLAdapter) GetProductByName(userID int, productName string) (*domain.Product, error) {
+func (r *repository) GetProductByName(userID int, productName string) (*domain.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -142,7 +131,7 @@ func (r *MySQLAdapter) GetProductByName(userID int, productName string) (*domain
 	return &product, nil
 }
 
-func (r *MySQLAdapter) GetBrandByName(brandName string) (*domain.Brand, error) {
+func (r *repository) GetBrandByName(brandName string) (*domain.Brand, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -166,7 +155,7 @@ func (r *MySQLAdapter) GetBrandByName(brandName string) (*domain.Brand, error) {
 	return &brand, nil
 }
 
-func (r *MySQLAdapter) GetCategoryByName(categoryName string) (*domain.Category, error) {
+func (r *repository) GetCategoryByName(categoryName string) (*domain.Category, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -190,7 +179,7 @@ func (r *MySQLAdapter) GetCategoryByName(categoryName string) (*domain.Category,
 	return &category, nil
 }
 
-func (r *MySQLAdapter) CreateProduct(req domain.Product, userID, brandID, categoryID int) error {
+func (r *repository) CreateProduct(req domain.Product, userID, brandID, categoryID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -218,7 +207,7 @@ func (r *MySQLAdapter) CreateProduct(req domain.Product, userID, brandID, catego
 	return nil
 }
 
-func (r *MySQLAdapter) UpdateProductByID(req domain.Product, brandID, categoryID, userID, productID int) error {
+func (r *repository) UpdateProductByID(req domain.Product, brandID, categoryID, userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -254,7 +243,7 @@ func (r *MySQLAdapter) UpdateProductByID(req domain.Product, brandID, categoryID
 	return nil
 }
 
-func (r *MySQLAdapter) UpdateProductQuantityByID(quantity, userID, productID int) error {
+func (r *repository) UpdateProductQuantityByID(quantity, userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -269,7 +258,7 @@ func (r *MySQLAdapter) UpdateProductQuantityByID(quantity, userID, productID int
 	return err
 }
 
-func (r *MySQLAdapter) DeleteProductByID(userID, productID int) error {
+func (r *repository) DeleteProductByID(userID, productID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 

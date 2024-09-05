@@ -1,38 +1,6 @@
-package order
+package domain
 
-type GetOrdersDTO struct {
-	UserID int
-}
-
-type GetOrderDTO struct {
-	UserID  int
-	OrderID int
-}
-
-type CreateOrderDTO struct {
-	UserID       int
-	CustomerName string
-	ProductName  string
-	BrandName    string
-	CategoryName string
-	Color        string
-	Size         string
-	Quantity     int
-	Description  string
-	Revenue      int64
-	Cost         int64
-	Profit       int64
-	HasReviewed  bool
-	Status       string
-	StatusReason string
-	OrderUUID    string
-}
-
-type UpdateOrderDTO struct {
-	OrderUUID    string
-	Status       string
-	StatusReason string
-}
+import "strings"
 
 type Order struct {
 	OrderID      int    `db:"id"`
@@ -53,4 +21,19 @@ type Order struct {
 	HasReviewed  bool   `db:"has_reviewed"`
 	UpdatedAt    string `db:"updated_at"`
 	CreatedAt    string `db:"created_at"`
+}
+
+// Sanitize trims leading and trailing whitespace from string fields in the Order struct.
+func (o *Order) Sanitize() {
+	o.CustomerName = strings.TrimSpace(o.CustomerName)
+	o.BrandName = strings.TrimSpace(o.BrandName)
+	o.CategoryName = strings.TrimSpace(o.CategoryName)
+	o.Color = strings.TrimSpace(o.Color)
+	o.Size = strings.TrimSpace(o.Size)
+	o.Description = strings.TrimSpace(o.Description)
+	o.Status = strings.TrimSpace(o.Status)
+	o.StatusReason = strings.TrimSpace(o.StatusReason)
+	o.OrderUUID = strings.TrimSpace(o.OrderUUID)
+	o.UpdatedAt = strings.TrimSpace(o.UpdatedAt)
+	o.CreatedAt = strings.TrimSpace(o.CreatedAt)
 }

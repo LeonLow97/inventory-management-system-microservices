@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/LeonLow97/internal/pkg/kafkago"
 	"github.com/LeonLow97/internal/ports"
-	"github.com/LeonLow97/pkg/kafkago"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -14,14 +14,12 @@ type ServiceEvents interface {
 }
 
 type serviceEvents struct {
-	repo     ports.Repository
-	eventBus ports.EventBus
+	repo ports.Repository
 }
 
-func NewServiceEvents(repo ports.Repository, eventBus ports.EventBus) ServiceEvents {
+func NewServiceEvents(repo ports.Repository) ServiceEvents {
 	return &serviceEvents{
-		repo:     repo,
-		eventBus: eventBus,
+		repo: repo,
 	}
 }
 
@@ -29,7 +27,7 @@ func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic,
 	messageChan := make(chan interface{})
 	errorChan := make(chan error)
 
-	s.eventBus.ConsumeOrderMessage(brokerAddress, consumeTopic, messageChan, errorChan)
+	s.repo.ConsumeOrderMessage(brokerAddress, consumeTopic, messageChan, errorChan)
 	for {
 		select {
 		case msg := <-messageChan:
@@ -92,7 +90,7 @@ func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic,
 			}
 
 			go func() {
-				if err := s.eventBus.ProduceOrderMessage(brokerAddress, produceTopic, updateOrderEvent); err != nil {
+				if err := s.repo.ProduceOrderMessage(brokerAddress, produceTopic, updateOrderEvent); err != nil {
 					log.Printf("failed to produce message for %s topic, order_uuid: %s, error: %v\n", produceTopic, orderEvent.OrderUUID, err)
 				}
 			}()
