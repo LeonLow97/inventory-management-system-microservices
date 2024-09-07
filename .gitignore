@@ -1,9 +1,6 @@
 # ---------- Golang ----------
 server/**/.env
 
-# Generated protobuf files
-*.pb.go
-
 # misc
 .DS_Store
 .env.*

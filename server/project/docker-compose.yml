@@ -173,42 +173,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.23
-    volumes:
-      - ./elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-    healthcheck:
-        test: ["CMD", "curl", "-s", "-f", "http://localhost:9200/_cat/health"]
-        interval: 3s
-        timeout: 3s
-        retries: 10
-    ports:
-      - "9200:9200"
-    
-  logstash:
-    image: docker.elastic.co/logstash/logstash:7.17.0
-    volumes:
-      - ./elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    ports:
-      - "5044:5044"
-    depends_on:
-      - elasticsearch
-    
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.17.0
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-    
-  filebeat:
-    image: docker.elastic.co/beats/filebeat:7.17.0
-    volumes:
-      - ./elk/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      - ../api-gateway/logs/:/logs/
-    depends_on:
-      - logstash
 
 volumes:
   postgres-authentication:
