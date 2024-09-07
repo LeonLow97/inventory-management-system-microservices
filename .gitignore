@@ -1,18 +1,8 @@
 # ---------- Golang ----------
 server/**/.env
 
-# build files
-**/apiGateway
-**/authApp
-**/orderApp
-**/inventoryApp
-
 # Generated protobuf files
 *.pb.go
-
-# Go modules artifacts
-go.sum
-go.mod
 
 # misc
 .DS_Store
