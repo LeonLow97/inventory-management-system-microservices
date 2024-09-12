@@ -19,11 +19,5 @@ func NewServiceEvents(repo ports.Repository) ServiceEvents {
 }
 
 func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, topic string) {
-	// TODO: Take from config .yaml
-	// const (
-	// 	topicUpdateOrderStatus = "update-order-status"
-	// 	brokerAddress          = "broker:9092"
-	// )
-
 	s.repo.ConsumeOrderStatus(brokerAddress, topic)
 }

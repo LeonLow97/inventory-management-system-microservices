@@ -1,0 +1,18 @@
+mode: "docker"
+
+server:
+  name: "order-service"
+  port: 8003
+
+kafka:
+  broker_address: "broker:9092"
+
+inventory_service:
+  url: "inventory-service:8002"
+
+postgres:
+  user: order-postgres
+  password: password
+  host: order-postgres
+  port: 5432
+  db: imsdb

@@ -4,17 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
+
+	"github.com/LeonLow97/internal/pkg/config"
 )
 
-func ConnectToMySQL() *sql.DB {
+func ConnectToMySQL(cfg config.Config) *sql.DB {
 	// MySQL DSN (Data Source Name)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-		os.Getenv("MYSQL_USER"),
-		os.Getenv("MYSQL_PASSWORD"),
-		os.Getenv("MYSQL_HOST"),
-		os.Getenv("MYSQL_PORT"),
-		os.Getenv("MYSQL_DATABASE"),
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+		cfg.MySQLConfig.User,
+		cfg.MySQLConfig.Password,
+		cfg.MySQLConfig.Host,
+		cfg.MySQLConfig.Port,
+		cfg.MySQLConfig.Database,
 	)
 
 	// open a connection to MySQL database

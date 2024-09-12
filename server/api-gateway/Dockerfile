@@ -1,7 +1,5 @@
 FROM golang:alpine
 
-# RUN mkdir -p /var/log/api-gateway
-
 WORKDIR /app
 
 COPY go.mod .

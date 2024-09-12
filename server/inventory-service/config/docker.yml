@@ -1,0 +1,15 @@
+mode: "docker"
+
+server:
+  name: "inventory-service"
+  port: 8002
+
+kafka:
+  broker_address: "broker:9092"
+
+mysql:
+  user: inventory-mysql
+  password: password
+  host: inventory-mysql
+  port: 3306
+  database: imsdb

@@ -2,36 +2,27 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/LeonLow97/internal/adapters/outbound"
 	"github.com/LeonLow97/internal/core/services"
-	"github.com/LeonLow97/pkg/config"
-	grpc_conn "github.com/LeonLow97/pkg/grpc"
-	kafkago "github.com/LeonLow97/pkg/kafkago"
-	postgres_conn "github.com/LeonLow97/pkg/postgres"
+	"github.com/LeonLow97/internal/pkg/config"
+	"github.com/LeonLow97/internal/pkg/grpcclient"
+	"github.com/LeonLow97/internal/pkg/grpcserver"
+	kafkago "github.com/LeonLow97/internal/pkg/kafkago"
+	postgres_conn "github.com/LeonLow97/internal/pkg/postgres"
 )
-
-var orderServicePort = os.Getenv("SERVICE_PORT")
-
-const (
-	topicDecrementInventory = "update-inventory-count"
-	topicUpdateOrderStatus  = "update-order-status"
-	brokerAddress           = "broker:9092"
-)
-
-type application struct {
-	orderService services.Service
-}
 
 func main() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalln("Failed to load config", err)
+	}
+
 	// initiate kafka-go segmentio instance
 	segmentioInstance := kafkago.NewSegmentio()
 
-	// add update inventory count topic to kafka
-	segmentioInstance.AddTopicConfig(topicDecrementInventory, 1, 1)
-	segmentioInstance.AddTopicConfig(topicUpdateOrderStatus, 1, 1)
-	conn, controllerConn, err := segmentioInstance.CreateTopics(brokerAddress)
+	// creating kafka topics
+	conn, controllerConn, err := segmentioInstance.CreateTopics(cfg.KafkaConfig.BrokerAddress)
 	if err != nil {
 		log.Fatalln("Unable to create kafka topics", err)
 	} else {
@@ -40,31 +31,27 @@ func main() {
 	defer conn.Close()
 	defer controllerConn.Close()
 
-	_, err = config.LoadConfig()
-	if err != nil {
-		log.Fatalln("Failed to load config", err)
-	}
-
-	db := postgres_conn.ConnectToDB()
+	db := postgres_conn.ConnectToDB(*cfg)
 	defer db.Close()
 
 	// initialise grpc client connections
-	grpcClient := grpc_conn.NewGRPCClient()
+	grpcClient := grpcclient.NewGRPCClient(*cfg)
 	defer grpcClient.InventoryClient().Close()
 
 	// initialise grpc order server
 	orderRepo := outbound.NewRepository(db, grpcClient.InventoryClient(), segmentioInstance)
-	orderService := services.NewService(orderRepo)
+	orderService := services.NewService(*cfg, orderRepo)
 
-	app := application{
-		orderService: orderService,
+	app := grpcserver.Application{
+		OrderService: orderService,
+		Config:       *cfg,
 	}
 
 	go app.InitiateGRPCServer()
 
 	// initiate event bus with inventory microservice
 	events := services.NewServiceEvents(orderRepo)
-	events.ConsumeUpdateInventoryEvent(brokerAddress, topicUpdateOrderStatus)
+	events.ConsumeUpdateInventoryEvent(cfg.KafkaConfig.BrokerAddress, kafkago.TOPIC_UPDATE_ORDER_STATUS)
 
 	select {}
 

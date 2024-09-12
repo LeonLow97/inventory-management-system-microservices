@@ -1,4 +1,4 @@
-package grpc_conn
+package grpcclient
 
 import (
 	"context"
@@ -6,12 +6,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/LeonLow97/internal/pkg/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-)
-
-const (
-	INVENTORY_SERVICE_URL = "inventory-service:8002"
 )
 
 type GRPCClient interface {
@@ -22,11 +19,11 @@ type grpcClientConn struct {
 	inventoryConn *grpc.ClientConn
 }
 
-func NewGRPCClient() GRPCClient {
+func NewGRPCClient(cfg config.Config) GRPCClient {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	inventoryConn, err := createGRPCConnection(ctx, INVENTORY_SERVICE_URL)
+	inventoryConn, err := createGRPCConnection(ctx, cfg.InventoryService.URL)
 	if err != nil {
 		log.Fatalf("failed to dial inventory microservice with error: %v\n", err)
 	}

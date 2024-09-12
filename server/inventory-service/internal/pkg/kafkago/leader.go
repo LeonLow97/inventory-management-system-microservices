@@ -29,6 +29,10 @@ func (s *Segmentio) AddTopicConfig(topic string, partitions int, replicationFact
 // CreateTopics creates multiple topics into the broker, assuming (auto.create.topics.enable='false')
 // where topics not in the broker are not auto created
 func (s *Segmentio) CreateTopics(broker string) (*kafka.Conn, *kafka.Conn, error) {
+	// adding topics
+	s.AddTopicConfig(TOPIC_DECREMENT_INVENTORY, 1, 1)
+	s.AddTopicConfig(TOPIC_UPDATE_ORDER_STATUS, 1, 1)
+
 	conn, err := kafka.Dial("tcp", broker)
 	if err != nil {
 		return nil, nil, err

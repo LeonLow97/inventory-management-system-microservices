@@ -20,6 +20,14 @@ protoc --go_out=. --go-grpc_out=. proto/order.proto
 protoc --go_out=. --go-grpc_out=. proto/inventory.proto
 ```
 
+### gRPC Health Server
+
+- To enable k8s deployment object to test for `livenessProbe` and `readinessProbe`
+
+```
+
+```
+
 ### Kafka CLI Commands
 
 ```

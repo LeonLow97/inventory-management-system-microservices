@@ -6,27 +6,28 @@ import (
 	"log"
 	"os"
 
-	"github.com/spf13/viper"
+	"github.com/ory/viper"
 )
 
 type Config struct {
-	Mode   string `mapstructure:"mode"`
 	Server struct {
-		URL  string `mapstructure:"url"`
+		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"server"`
-	JWT struct {
-		Secret string `mapstructure:"secret"`
-	} `mapstructure:"jwt"`
-	AuthService struct {
-		URL string `mapstructure:"url"`
-	} `mapstructure:"auth_service"`
-	InventoryService struct {
-		URL string `mapstructure:"url"`
-	} `mapstructure:"inventory_service"`
-	OrderService struct {
-		URL string `mapstructure:"url"`
-	} `mapstructure:"order_service"`
+	KafkaConfig KafkaConfig `mapstructure:"kafka"`
+	MySQLConfig MySQLConfig `mapstructure:"mysql"`
+}
+
+type KafkaConfig struct {
+	BrokerAddress string `mapstructure:"broker_address"`
+}
+
+type MySQLConfig struct {
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Database string `mapstructure:"database"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -39,7 +40,6 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("/app/config")
 
-	// inject environment variables to override matching keys in configuration files (.yaml)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/LeonLow97/internal/core/domain"
-	"github.com/LeonLow97/pkg/kafkago"
+	"github.com/LeonLow97/internal/pkg/kafkago"
 	"github.com/segmentio/kafka-go"
 )
 

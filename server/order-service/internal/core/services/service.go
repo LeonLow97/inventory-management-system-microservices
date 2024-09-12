@@ -5,15 +5,10 @@ import (
 	"log"
 
 	"github.com/LeonLow97/internal/core/domain"
+	"github.com/LeonLow97/internal/pkg/config"
+	"github.com/LeonLow97/internal/pkg/kafkago"
 	"github.com/LeonLow97/internal/ports"
 	"github.com/google/uuid"
-)
-
-// TODO: take from config file
-const (
-	topicDecrementInventory = "update-inventory-count"
-	topicUpdateOrderStatus  = "update-order-status"
-	brokerAddress           = "broker:9092"
 )
 
 type Service interface {
@@ -23,11 +18,13 @@ type Service interface {
 }
 
 type service struct {
+	cfg  config.Config
 	repo ports.Repository
 }
 
-func NewService(r ports.Repository) Service {
+func NewService(cfg config.Config, r ports.Repository) Service {
 	return &service{
+		cfg:  cfg,
 		repo: r,
 	}
 }
@@ -65,7 +62,7 @@ func (s service) CreateOrder(ctx context.Context, req domain.Order, userID int, 
 
 	producerErrorChan := make(chan error)
 	go func() {
-		producerErrorChan <- s.repo.ProduceOrderMessage(brokerAddress, topicDecrementInventory, orderUUID, productID, userID, req.Quantity)
+		producerErrorChan <- s.repo.ProduceOrderMessage(s.cfg.KafkaConfig.BrokerAddress, kafkago.TOPIC_DECREMENT_INVENTORY, orderUUID, productID, userID, req.Quantity)
 		close(producerErrorChan)
 	}()
 

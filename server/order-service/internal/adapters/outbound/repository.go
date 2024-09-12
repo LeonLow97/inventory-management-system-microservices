@@ -2,7 +2,7 @@ package outbound
 
 import (
 	"github.com/LeonLow97/internal/ports"
-	"github.com/LeonLow97/pkg/kafkago"
+	"github.com/LeonLow97/internal/pkg/kafkago"
 	pb "github.com/LeonLow97/proto"
 	"github.com/jmoiron/sqlx"
 	"google.golang.org/grpc"

@@ -27,19 +27,17 @@ func NewGRPCClient(cfg *config.Config) GRPCClient {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	orderConn, err := createGRPCConnection(ctx, cfg.ServiceEndpoints.Order)
+	authConn, err := createGRPCConnection(ctx, cfg.AuthService.URL)
 	if err != nil {
-		log.Fatalf("Error dialing order microservice gRPC: %v", err)
+		log.Fatalf("Error dialing authentication microservice gRPC: %v", err)
 	}
-
-	inventoryConn, err := createGRPCConnection(ctx, cfg.ServiceEndpoints.Inventory)
+	inventoryConn, err := createGRPCConnection(ctx, cfg.InventoryService.URL)
 	if err != nil {
 		log.Fatalf("Error dialing inventory microservice gRPC: %v", err)
 	}
-
-	authConn, err := createGRPCConnection(ctx, cfg.ServiceEndpoints.Auth)
+	orderConn, err := createGRPCConnection(ctx, cfg.OrderService.URL)
 	if err != nil {
-		log.Fatalf("Error dialing authentication microservice gRPC: %v", err)
+		log.Fatalf("Error dialing order microservice gRPC: %v", err)
 	}
 
 	return &grpcClientConn{

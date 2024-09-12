@@ -74,7 +74,7 @@ func main() {
 	router := app.routes()
 
 	// Using gin to start api gateway server, exit status 1 if fail to start server
-	logger.Info("Starting API Gateway...")
+	logger.Info("Starting API Gateway for Inventory Management System!")
 	apiGatewayPort := fmt.Sprintf(":%d", cfg.Server.Port)
 	if err := router.Run(apiGatewayPort); err != nil {
 		logger.Fatal("failed to run server", zap.Error(err))

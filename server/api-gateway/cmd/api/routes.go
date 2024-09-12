@@ -19,7 +19,7 @@ func (app *application) routes() *gin.Engine {
 	router.Use(app.rateLimitMiddleware())
 
 	// for checking if api gateway service is healthy and running
-	router.GET("/", func(c *gin.Context) {
+	router.GET("/healthcheck", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "api gateway healthy and running!"})
 	})
 

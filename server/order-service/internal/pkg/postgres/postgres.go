@@ -3,21 +3,21 @@ package postgres_conn
 import (
 	"fmt"
 	"log"
-	"os"
 
+	"github.com/LeonLow97/internal/pkg/config"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
 )
 
-func ConnectToDB() *sqlx.DB {
+func ConnectToDB(cfg config.Config) *sqlx.DB {
 	// Construct the DSN string based on environment variables
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_DB"),
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		cfg.PostgresConfig.User,
+		cfg.PostgresConfig.Password,
+		cfg.PostgresConfig.Host,
+		cfg.PostgresConfig.Port,
+		cfg.PostgresConfig.DB,
 	)
 
 	connConfig, err := pgx.ParseConfig(databaseURL)
