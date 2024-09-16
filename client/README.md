@@ -1,39 +1,50 @@
-# To Do
+# React + TypeScript + Vite
 
-- Add CSS Styling to Components
-- Add Flash Message for success message
-    - Login
-    - Sign Up
-- Change Cookie JWT Token to sessionstorage JWT Token.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-# Issues Faced
+Currently, two official plugins are available:
 
-1. Cookie was not set in browser cookie but can be seen in login response network (under 'Cookies').
-    - have to set `'credentials': "include"` in `fetch` request that is expecting a cookie in the response.
-    - For axios, use `withCredentials: true`.
-    - In Golang CORS enabling, ensure that this field is set to true:
-        - `AllowCredentials: true`
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-# TypeScript
+## Expanding the ESLint configuration
 
-## `React.ReactNode`
+If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
 
-## `React.ReactElement`
-
-## `React.ReactFC<Props>`
-
-## Generics in TypeScript React
-
-- [Link](https://devtrium.com/posts/react-typescript-using-generics-in-react)
-- Generics provide a way to tell functions, classes, or interfaces what type you want to use when you call it.
+- Configure the top-level `parserOptions` property like this:
 
 ```js
-// Generics
-function identity<ArgType>(arg: ArgType): ArgType {
-  return arg;
-}
+export default tseslint.config({
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
+```
 
-// How we would use it
-const greeting = identity<string>('Hello World!');
+- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
+- Optionally add `...tseslint.configs.stylisticTypeChecked`
+- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
 
+```js
+// eslint.config.js
+import react from 'eslint-plugin-react'
+
+export default tseslint.config({
+  // Set the react version
+  settings: { react: { version: '18.3' } },
+  plugins: {
+    // Add the react plugin
+    react,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended rules
+    ...react.configs.recommended.rules,
+    ...react.configs['jsx-runtime'].rules,
+  },
+})
 ```
