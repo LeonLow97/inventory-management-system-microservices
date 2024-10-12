@@ -1,2 +1,0 @@
-development:
-  url: 'postgres://postgres:password@localhost:5432/imsdb?sslmode=disable'

@@ -25,7 +25,7 @@ func (r *AuthRepo) Login(ctx context.Context, req domain.User) (*domain.User, er
 		Password: req.Password,
 	}
 
-	grpcResp, err := r.conn.Authenticate(ctx, grpcReq)
+	grpcResp, err := r.conn.Login(ctx, grpcReq)
 	if err != nil {
 		return nil, err
 	}

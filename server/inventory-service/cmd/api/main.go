@@ -21,11 +21,13 @@ func main() {
 	// initiate kafka-go segmentio instance
 	segmentioInstance := kafkago.NewSegmentio()
 
-	conn, controllerConn, err := segmentioInstance.CreateTopics(cfg.KafkaConfig.BrokerAddress)
+	conn, controllerConn, err := segmentioInstance.CreateTopics("broker:9092")
 	if err != nil {
-		log.Fatalln("Unable to create kafka topics", err)
+		log.Fatalf("Unable to create kafka topics | broker address: %s | error: %v", cfg.KafkaConfig.BrokerAddress, err)
+	} else {
+		log.Println("Successfully created kafka topics!")
 	}
-	log.Println("Successfully created kafka topics!")
+
 	defer conn.Close()
 	defer controllerConn.Close()
 

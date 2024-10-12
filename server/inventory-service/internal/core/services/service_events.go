@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 
 	"github.com/LeonLow97/internal/pkg/kafkago"
 	"github.com/LeonLow97/internal/ports"
@@ -45,14 +46,14 @@ func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic,
 			}
 
 			orderEventResp := kafkago.OrderEventResp{
-				OrderUUID: orderEvent.OrderUUID,
+				OrderID:   orderEvent.OrderID,
 				UserID:    orderEvent.UserID,
 				ProductID: orderEvent.ProductID,
 			}
 
 			// insufficient inventory
 			if product.Quantity < orderEvent.Quantity {
-				// produce message with order uuid back to order microservice with status "FAILED"
+				// produce message with order id back to order microservice with status "FAILED"
 				orderEventResp.Status = "FAILED"
 				orderEventResp.RemainingQuantity = product.Quantity
 
@@ -71,7 +72,7 @@ func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic,
 					break
 				}
 
-				// produce message with order uuid back to order microservice with status "COMPLETED"
+				// produce message with order id back to order microservice with status "COMPLETED"
 				orderEventResp.Status = "COMPLETED"
 				orderEventResp.StatusReason = "Order completed!"
 				orderEventResp.RemainingQuantity = finalQuantity
@@ -84,14 +85,14 @@ func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic,
 			}
 			updateOrderEvent := []kafka.Message{
 				{
-					Key:   []byte(orderEvent.OrderUUID),
+					Key:   []byte(strconv.Itoa(orderEvent.OrderID)),
 					Value: []byte(jsonData),
 				},
 			}
 
 			go func() {
 				if err := s.repo.ProduceOrderMessage(brokerAddress, produceTopic, updateOrderEvent); err != nil {
-					log.Printf("failed to produce message for %s topic, order_uuid: %s, error: %v\n", produceTopic, orderEvent.OrderUUID, err)
+					log.Printf("failed to produce message for %s topic, order_id: %d, error: %v\n", produceTopic, orderEvent.OrderID, err)
 				}
 			}()
 		case err := <-errorChan:

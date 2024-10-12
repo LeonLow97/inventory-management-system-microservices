@@ -12,15 +12,16 @@ import (
 
 func ConnectToDB(cfg config.Config) *sqlx.DB {
 	// Construct the DSN string based on environment variables
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.PostgresConfig.User,
 		cfg.PostgresConfig.Password,
 		cfg.PostgresConfig.Host,
 		cfg.PostgresConfig.Port,
 		cfg.PostgresConfig.DB,
 	)
+	log.Printf("Connecting to database with URL: %s", dsn)
 
-	connConfig, err := pgx.ParseConfig(databaseURL)
+	connConfig, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		log.Fatal("failed to parse config with error:", err)
 		return nil
@@ -36,6 +37,8 @@ func ConnectToDB(cfg config.Config) *sqlx.DB {
 		log.Fatal("failed to ping postgres database with error:", err)
 		return nil
 	}
+
+	log.Println("Successfully connected to Postgres database!")
 
 	return db
 }

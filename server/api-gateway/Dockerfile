@@ -7,6 +7,8 @@ COPY go.sum .
 
 RUN go mod download
 
+COPY config /app/config
+
 COPY . .
 
 ENV GOOS=linux CGO_ENABLED=0

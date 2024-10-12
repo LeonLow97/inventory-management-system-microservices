@@ -28,7 +28,7 @@ func (s *orderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersReques
 	orders, err := s.service.GetOrders(int(req.UserID))
 	if err != nil {
 		switch {
-		case errors.Is(err, outbound.ErrNoOrdersFound):
+		case errors.Is(err, outbound.ErrOrdersNotFound):
 			return nil, status.Error(codes.NotFound, "No Orders Found")
 		default:
 			return nil, status.Error(codes.Internal, "Internal Server Error")
@@ -38,7 +38,7 @@ func (s *orderGRPCServer) GetOrders(ctx context.Context, req *pb.GetOrdersReques
 	pbOrders := make([]*pb.Order, len(*orders))
 	for i, order := range *orders {
 		pbOrders[i] = &pb.Order{
-			OrderId:      int64(order.OrderID),
+			OrderId:      int64(order.ID),
 			ProductId:    int64(order.ProductID),
 			CustomerName: order.CustomerName,
 			BrandName:    order.BrandName,
@@ -64,7 +64,7 @@ func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest)
 	order, err := s.service.GetOrderByID(int(req.UserID), int(req.OrderID))
 	if err != nil {
 		switch {
-		case errors.Is(err, outbound.ErrNoOrderFound):
+		case errors.Is(err, outbound.ErrOrderNotFound):
 			return nil, status.Error(codes.NotFound, "No Order Found")
 		default:
 			return nil, status.Error(codes.Internal, "Internal Server Error")
@@ -72,7 +72,7 @@ func (s *orderGRPCServer) GetOrder(ctx context.Context, req *pb.GetOrderRequest)
 	}
 
 	return &pb.Order{
-		OrderId:      int64(order.OrderID),
+		OrderId:      int64(order.ID),
 		ProductId:    int64(order.ProductID),
 		CustomerName: order.CustomerName,
 		BrandName:    order.BrandName,

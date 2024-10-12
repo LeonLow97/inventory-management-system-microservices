@@ -7,12 +7,14 @@ COPY go.sum .
 
 RUN go mod download
 
+COPY config /app/config
+
 COPY . .
 
 ENV GOOS=linux CGO_ENABLED=0
 
-RUN go build -o authService ./cmd/api
+RUN go build -o inventoryService ./cmd/api
 
 EXPOSE 8001
 
-CMD ["./authService"]
+CMD ["./inventoryService"]

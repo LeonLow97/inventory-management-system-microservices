@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX idx_users_username ON users (username);
+
 INSERT INTO users (first_name, last_name, username, password, email)
 VALUES
     ('Jie Wei', 'Low', 'lowjiewei', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'lowjiewei@email.com'),

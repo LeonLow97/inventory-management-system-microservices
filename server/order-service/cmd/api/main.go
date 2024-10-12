@@ -24,7 +24,7 @@ func main() {
 	// creating kafka topics
 	conn, controllerConn, err := segmentioInstance.CreateTopics(cfg.KafkaConfig.BrokerAddress)
 	if err != nil {
-		log.Fatalln("Unable to create kafka topics", err)
+		log.Fatalf("Unable to create kafka topics | broker address: %s | error: %v", cfg.KafkaConfig.BrokerAddress, err)
 	} else {
 		log.Println("Successfully created kafka topics!")
 	}
@@ -54,24 +54,4 @@ func main() {
 	events.ConsumeUpdateInventoryEvent(cfg.KafkaConfig.BrokerAddress, kafkago.TOPIC_UPDATE_ORDER_STATUS)
 
 	select {}
-
-	// // initialize session with aws
-	// awsSession, err := aws.NewSession(cfg)
-	// if err != nil {
-	// 	log.Fatalln("error getting aws session", err)
-	// }
-
-	// // initialize session with s3
-	// s3Session := s3client.NewS3(awsSession, 10*time.Second)
-
-	// fileContent := `This is a test file generated from Golang by Jie Wei!`
-	// reader := strings.NewReader(fileContent)
-
-	// // test s3 upload object
-	// fmt.Println("Bucket name", cfg.AWS.Bucket)
-	// loc, err := s3Session.UploadObject(context.Background(), cfg.AWS.Bucket, "/test/temp.txt", reader)
-	// if err != nil {
-	// 	log.Fatalln("error uploading object to s3", err)
-	// }
-	// fmt.Println("location", loc)
 }

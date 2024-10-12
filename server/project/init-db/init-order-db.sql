@@ -21,21 +21,22 @@ CREATE TABLE IF NOT EXISTS orders (
     has_reviewed BOOLEAN DEFAULT FALSE,
     status VARCHAR(50) NOT NULL,
     status_reason TEXT,
-    order_uuid UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() 
 );
 
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+
 INSERT INTO orders (
-    order_uuid, product_id, user_id, customer_name,brand_name, category_name, color, size, quantity, description, revenue, cost, profit, has_reviewed, status
+    product_id, user_id, customer_name,brand_name, category_name, color, size, quantity, description, revenue, cost, profit, has_reviewed, status
 ) VALUES
-    ('00000000-0000-0000-0000-000000000001', 1, 1, 'John Doe', 'Nike', 'Shoes', 'Black', 'Medium', 2, 'Ordered for daily jogging', 2000, 1500, 500, FALSE, 'COMPLETED'),
-    ('00000000-0000-0000-0000-000000000002', 3, 2, 'Alice Johnson', 'Puma', 'Clothing', 'Red', 'Large', 1, 'Bought for casual wear', 800, 600, 200, FALSE, 'FAILED'),
-    ('00000000-0000-0000-0000-000000000003', 6, 3, 'Bob Smith', 'Adidas', 'Accessories', 'Black', '', 1, 'Ordered for UV protection', 150, 100, 50, FALSE, 'SUBMITTED'),
-    ('00000000-0000-0000-0000-000000000004', 4, 1, 'Emily Brown', 'Nike', 'Shoes', 'White', 'Small', 3, 'Purchased for everyday use', 2400, 1800, 600, FALSE, 'COMPLETED'),
-    ('00000000-0000-0000-0000-000000000005', 8, 2, 'David Lee', 'Adidas', 'Clothing', 'Green', 'Small', 2, 'Ordered for outdoor activities', 400, 300, 100, FALSE, 'COMPLETED'),
-    ('00000000-0000-0000-0000-000000000006', 9, 3, 'Sophia Wilson', 'Nike', 'Accessories', 'Silver', '', 1, 'Purchased for a stylish look', 120, 80, 40, FALSE, 'FAILED'),
-    ('00000000-0000-0000-0000-000000000007', 5, 1, 'Olivia Martinez', 'Puma', 'Clothing', 'Gray', 'Medium', 1, 'Ordered for cold weather', 1000, 750, 250, FALSE, 'FAILED'),
-    ('00000000-0000-0000-0000-000000000008', 2, 2, 'William Johnson', 'Adidas', 'Shoes', 'Blue', 'Large', 2, 'Ordered for casual jogging', 1600, 1200, 400, FALSE, 'FAILED'),
-    ('00000000-0000-0000-0000-000000000009', 10, 3, 'Charlotte Davis', 'Nike', 'Clothing', 'Red', 'Medium', 1, 'Purchased for a smart-casual look', 300, 200, 100, FALSE, 'SUBMITTED'),
-    ('00000000-0000-0000-0000-000000000010', 7, 1, 'James Taylor', 'Puma', 'Accessories', 'Brown', '', 1, 'Ordered for daily usage', 200, 150, 50, FALSE, 'SUBMITTED');
+    (1, 1, 'John Doe', 'Nike', 'Shoes', 'Black', 'Medium', 2, 'Ordered for daily jogging', 2000, 1500, 500, FALSE, 'COMPLETED'),
+    (3, 2, 'Alice Johnson', 'Puma', 'Clothing', 'Red', 'Large', 1, 'Bought for casual wear', 800, 600, 200, FALSE, 'FAILED'),
+    (6, 3, 'Bob Smith', 'Adidas', 'Accessories', 'Black', '', 1, 'Ordered for UV protection', 150, 100, 50, FALSE, 'SUBMITTED'),
+    (4, 1, 'Emily Brown', 'Nike', 'Shoes', 'White', 'Small', 3, 'Purchased for everyday use', 2400, 1800, 600, FALSE, 'COMPLETED'),
+    (8, 2, 'David Lee', 'Adidas', 'Clothing', 'Green', 'Small', 2, 'Ordered for outdoor activities', 400, 300, 100, FALSE, 'COMPLETED'),
+    (9, 3, 'Sophia Wilson', 'Nike', 'Accessories', 'Silver', '', 1, 'Purchased for a stylish look', 120, 80, 40, FALSE, 'FAILED'),
+    (5, 1, 'Olivia Martinez', 'Puma', 'Clothing', 'Gray', 'Medium', 1, 'Ordered for cold weather', 1000, 750, 250, FALSE, 'FAILED'),
+    (2, 2, 'William Johnson', 'Adidas', 'Shoes', 'Blue', 'Large', 2, 'Ordered for casual jogging', 1600, 1200, 400, FALSE, 'FAILED'),
+    (10, 3, 'Charlotte Davis', 'Nike', 'Clothing', 'Red', 'Medium', 1, 'Purchased for a smart-casual look', 300, 200, 100, FALSE, 'SUBMITTED'),
+    (7, 1, 'James Taylor', 'Puma', 'Accessories', 'Brown', '', 1, 'Ordered for daily usage', 200, 150, 50, FALSE, 'SUBMITTED');

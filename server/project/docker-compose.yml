@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   api-gateway:
@@ -9,7 +9,7 @@ services:
     volumes:
       - ../api-gateway/logs/:/logs/
     ports:
-      - '80:80'
+      - "80:80"
     depends_on:
       - authentication-service
     environment:
@@ -24,22 +24,23 @@ services:
         condition: service_healthy
     restart: always
     ports:
-      - '8001:8001'
+      - "8001:8001"
     deploy:
       mode: replicated
       replicas: 1
     environment:
+      MODE: docker
       POSTGRES_USER: authentication-postgres
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: authentication-postgres
-      POSTGRES_PORT: '5432'
+      POSTGRES_PORT: "5432"
       POSTGRES_DB: imsdb
-      SERVICE_PORT: '8001'
+      SERVICE_PORT: "8001"
 
   authentication-postgres:
-    image: 'postgres:14.2'
+    image: "postgres:14.2"
     ports:
-      - '5432:5432'
+      - "5432:5432"
     restart: always
     deploy:
       mode: replicated
@@ -66,22 +67,23 @@ services:
         condition: service_healthy
     restart: always
     ports:
-      - '8002:8002'
+      - "8002:8002"
     deploy:
       mode: replicated
       replicas: 1
     environment:
+      MODE: docker
       MYSQL_USER: inventory-mysql
       MYSQL_PASSWORD: password
       MYSQL_HOST: inventory-mysql
-      MYSQL_PORT: '3306'
+      MYSQL_PORT: "3306"
       MYSQL_DATABASE: imsdb
-      SERVICE_PORT: '8002'
+      SERVICE_PORT: "8002"
 
   inventory-mysql:
-    image: 'mysql:latest'
+    image: "mysql:8.0"
     ports:
-      - '3306:3306'
+      - "3306:3306"
     restart: always
     deploy:
       mode: replicated
@@ -109,24 +111,23 @@ services:
         condition: service_healthy
     restart: always
     ports:
-      - '8003:8003'
+      - "8003:8003"
     deploy:
       mode: replicated
       replicas: 1
-    volumes:
-      - ./config:/app/config
     environment:
+      MODE: docker
       POSTGRES_USER: order-postgres
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: order-postgres
-      POSTGRES_PORT: '5432'
+      POSTGRES_PORT: "5432"
       POSTGRES_DB: imsdb
-      SERVICE_PORT: '8003'
+      SERVICE_PORT: "8003"
 
   order-postgres:
-    image: 'postgres:14.2'
+    image: "postgres:14.2"
     ports:
-      - '5433:5432'
+      - "5433:5432"
     restart: always
     deploy:
       mode: replicated
@@ -144,6 +145,7 @@ services:
       interval: 10s
       timeout: 2s
 
+  # manages kafka brokers
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
@@ -151,23 +153,24 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
+  # kafka broker service and depends on Zookeeper
   broker:
     image: confluentinc/cp-kafka:7.3.0
     ports:
       # To learn about configuring Kafka for access across networks, see
       # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
-      - '9092:9092'
+      - "9092:9092"
     depends_on:
       - zookeeper
     healthcheck:
       test:
-        ['CMD', 'kafka-topics', '--bootstrap-server', 'broker:9092', '--list']
+        ["CMD", "kafka-topics", "--bootstrap-server", "broker:9092", "--list"]
       interval: 30s
       timeout: 10s
       retries: 10
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1

@@ -1,105 +1,107 @@
-## Inventory Management System (IMS)
+# Inventory Management System
 
-## Assumptions
+## Overview
 
-## Key Features
+The Inventory Management System (IMS) is designed to assist individuals and business owners in efficiently tracking their inventory, whether for a physical store or an online shop. This system ensures that you can effortlessly manage your stock levels and make informed decisions.
 
-- Pagination
-- API Security (rate limiting, IP whitelisting)
+When a customer places an order, the inventory count is updated, providing real-time visibility into available stock. The system also alerts you when inventory levels are low, enabling timely reordering of items. This proactive approach ensures that you always have sufficient stock on hand to meet customer demand.
 
-## User Groups
+In addition to inventory tracking, the system records customer details during each purchase, along with cost and profit for each item sold. This comprehensive data allows you to analyze product performance by brand and category, giving you deeper insights into your inventory management. Ultimately, this system empowers you to maintain optimal inventory levels and enhances your overall business efficiency.
 
-## Entity Relationship Diagram
+This project was originally created to support my online business at [YourHypeStore](https://www.carousell.com/u/yourhypestore)
 
-## Microservices Architecture
+## Architecture
 
-- gRPC for communication between microservices and MQ (Apache Kafka / RabbitMQ) for Pub-Sub messaging
+### Microservices
 
-|Service/Component|Description|
-|---|---|
-|NGINX Production Server|For Production Web Servers|
-|API Gateway / Reverse Proxy|For handling incoming request for forwarding the requests to the respective microservice|
-|Monitoring Service|Using WebSocket to keep track of the health of the microservices|
-|Authentication Service|Using JWT Token to authenticate requests with PostgresSQL Database|
-|Mail Service (2FA, Monitoring Reporting)|Using MailHog in development and using Kafka/RabbitMQ to subscribe to mail events|
-|Logging Service|To store logs (Explore ELK Stack for this)|
-|Inventory Service|To keep track of the count of inventory (Can explore Redis to store the product name, color or size names)|
-|Order Service|To keep track of customer order or sales|
-|Revenue Service|To keep track of the revenue generated from the sales of the inventory|
+1. **API Gateway**
 
-## DevOps
+- An API Gateway is an API management tool that sits between a client and a collection of backend services.
+- Accepts HTTP requests from client and routes them to respective microservices with gRPC communication.
+- Utilised API Gateway **Aggregator Pattern** to collect data from various microservices and returns an aggregate for processing.
+- Implemented **rate limiting with Leaky Bucket Algorithm** to avoid overloading a server from too many requests at the same time and prevent Denial of Service (DoS) attacks.
 
-- Docker
-  - Utilizing `docker-compose.yml` and `Dockerfile` to work with containers in development to ensure the application works similar to Production environment.
-- Kubernetes
-  - Utilizing Ingress Service, Deployment, and Pods k8s Objects with a declarative approach (using `.yml` configuration files) to setup the Kubernetes Cluster to enable scalability and availability.
-- Gitlab CI/CD
-  - Setup local Gitlab Runner to build, test and deploy the application to enable Continuous Integration and Continuous Deployment of the application to Production environment.
+2. **Authentication**
 
-## Objectives
+- Implements JWT-based authentication for secure user access.
+- Validates user credentials and issues access tokens.
+- Handles user registration and management.
 
-- Maintain quality control through accurate tracking of transactions involving consumer goods.
-- Use sales data to constantly update and maintain precise inventory records.
-- Avoid stock shortages by alerting the wholesaler when it is time to restock (through Email SMTP).
-- Reduce errors in stock recording through automation.
+3. **Inventory**
 
-## 3-Tier Architecture
+- Manages inventory data and performs operations like:
+  - Adding new inventory items
+  - Updating existing items
+  - Retrieving inventory status
 
-|     Layer      |  Software  |
-| :------------: | :--------: |
-|    Database    | PostgreSQL |
-|     Logic      |   Golang   |
-| Presentational |  ReactJS   |
+4. **Order**
 
-## User Group
+- Processes customer orders and tracks their status
+- Interacts with the Inventory service to check stock levels.
 
-|    User Group     |                                                    Description                                                     |
-| :---------------: | :----------------------------------------------------------------------------------------------------------------: |
-|       Admin       |         Managing user accounts and permissions. Implementing new features and improvements to the system.          |
-|     IMS User      |              Can access all the functionalities of operations and financial analyst. (Self-Employed)               |
-|    Operations     |  Use IMS to manage and track sales, customer details, inventory and place orders for the business. (Organisation)  |
-| Financial Analyst | Use IMS to analyze financial data, such as profit margins, monthly profits, and inventory turnover. (Organisation) |
+## Technologies Used
 
-## User Stories
+- **Languages**: Golang
+- **Frameworks**: Gin, Gorilla Mux
+- **Databases**: PostgreSQL, MySQL
+- **Messaging**: Apache Kafka
+- **Containerization and Orchestration**: Docker, Kubernetes
+- **Communication Protocols**: REST, gRPC
 
-- As a user, I want to be able to login into my IMS account with a secure login method (2FA Authentication).
-- As a non-user, I want to be able to sign up for a IMS account in the login page.
-- As an admin, I want to able to create accounts for users and manage the permissions.
-- As an admin, I want to able to view, edit and delete the accounts in the IMS.
-- As a user, I want to be able to add a new product to the IMS.
-- As a user, I want to be able to view, edit and delete the products in my IMS account.
+## Setup
 
-## Entity-Relationship Diagram (ERD)
-
-#### User Management ERD
-
-<img src='./server/src/docs/ERD-User-Management.png' alt='User Management ERD Diagram'>
-
-#### Inventory Management ERD
-
-<img src='./server/src/docs/ERD-Inventory-Management.png' alt='Inventory Management ERD Diagram'>
-
-## 2FA Authentication
-
-- 2FA provides an additional layer of security as it mitigates the risks associated with weak or stolen passwords.
-- By requiring the user to provide 2 different authentication factors, 2FA helps to protect against unauthorized access to an account or system.
-- Cryptographically secure pseudorandom number generators (CSPRNG) were used to generate one-time passwords (OTPs) for two-factor authentication (2FA) over Psedorandom Number Generators (PRNG) due to the **increased security, enhanced randomness, and improved reliability**.
-- In the **Generate2FA()** function, the OTP was generated in the format of 5 alphabets (lower and upper case) and 6 numbers separated by a hyphen "-" to provide a high level of randomness.
-
-## Unit Testing - Test Driven Development (TDD)
-
-- The main purpose of unit testing is to test the functionality of individual units of code to ensure that they are working as intended.
-- Unit testing can also be used to establish a foundation for automated testing and continuous integration, which helps to maintain the quality and reliability of the software over time.
-- The following steps were implemented in the process of TDD:
-  1. Plan your test cases: Write down the different scenarios you want to test, and write down the expected input and output for each test case.
-  2. Write the function: Write the function you want to test in code. At this point, the function should have any actual implementation. It should just have the correct function signature and return type.
-  3. Write the unit test function: Write a unit test function that tests the function in step 2. The unit test function should take in the expected input and output for each test case, and use assertions to check that the function produces the correct output when given the expected input.
-  4. Run the tests and refactor (if necessary).
+There are 2 methods to setup IMS - Docker and Kubernetes, and this is only applicable to localhost environment.
 
 ---
 
-- `coverage`
-  - `alias coverage='go test -coverprofile=coverage.out && go tool cover -html=coverage.out'`
-- Running ALL tests on /src directory
-  - `go test -v ./...`
-  - `go test ./...`
+### Docker Setup
+
+- Ensure ports 5432 and 3306 are not taken as there will be used by PostgreSQL and MySQL respectively. You could also change the host port to another port number to accommodate the setup.
+
+```
+# Step 1: change directory into `project` folder
+cd ./server/project
+
+# Step 2: run init.sh to setup proto files and install grpc
+sh init.sh
+
+# Step 3: Either run the command in `Makefile` or manual docker-compose command
+make build
+docker-compose up # alternative command
+```
+
+### Kubernetes Setup
+
+```
+# Step 1: Create directories for persistent volumes in Authentication, Inventory and Order microservices, we are storing PVs in local directories (on production, we will use AWS elastic block store). On MacOS, go to your user home directory (cd ~, then perform ls to find our user directory).
+cd /Users/leonlow/
+mkdir persistent_volume
+cd persistent_volume
+mkdir inventory-mysql order-postgres authentication-postgres
+
+# Step 2: Edit the hostPath for PV in k8s config file, `persistent-volume.yml`
+cd ./server/project/k8s/
+vi persistent-volume.yml
+
+----- EDIT THIS LINE -----
+# change `leonlow` to your own `home directory`, make sure to do for all 3 PV
+hostPath:
+  path: /Users/leonlow/persistent_volume/inventory-mysql
+
+# Step 3: Run k8s.sh to set up local Docker Registry (in reality, we will use AWS ECR or Docker Hub)
+sh k8s.sh
+
+# Step 4: After Step 3 has completed (important to wait till it's done), setup k8s resources (this step will take about 5 - 10 minutes).
+kubectl apply -f ./k8s
+
+# If step 4 throws a warning saying that ingress controller still not started, wait for a few minutes then run
+kubectl apply -f ./k8s/ingress-resource.yml
+
+# Step 5: Check and ensure all pods are running
+kubectl get pods
+
+# Step 6: Perform healthcheck on API Gateway
+curl http://localhost:80/healthcheck
+```
+
+---

@@ -2,18 +2,12 @@ package main
 
 import (
 	"net/http"
-	"time"
 
-	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 )
 
 func (app *application) routes() *gin.Engine {
 	router := gin.Default()
-
-	// Set Gin to use Zap as logger
-	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
-	router.Use(ginzap.RecoveryWithZap(logger, true))
 
 	router.Use(app.ipWhitelistMiddleware())
 	router.Use(app.rateLimitMiddleware())
@@ -24,7 +18,7 @@ func (app *application) routes() *gin.Engine {
 	})
 
 	// authentication microservice endpoints
-	router.POST("/authenticate", app.AuthHandler.Login())
+	router.POST("/login", app.AuthHandler.Login())
 	router.POST("/signup", app.AuthHandler.SignUp())
 	router.POST("/logout", app.AuthHandler.Logout())
 

@@ -1,0 +1,15 @@
+mode: 'staging'
+
+server:
+  name: 'inventory-service'
+  port: 8002
+
+kafka:
+  broker_address: 'broker:9092'
+
+mysql:
+  user: FROM_K8S
+  password: FROM_K8S
+  host: FROM_K8S
+  port: 3306
+  database: FROM_K8S

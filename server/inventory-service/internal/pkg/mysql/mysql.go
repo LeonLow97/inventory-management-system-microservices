@@ -18,6 +18,8 @@ func ConnectToMySQL(cfg config.Config) *sql.DB {
 		cfg.MySQLConfig.Database,
 	)
 
+	log.Println("DEBUGGING DSN: ", dsn)
+
 	// open a connection to MySQL database
 	conn, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -28,6 +30,8 @@ func ConnectToMySQL(cfg config.Config) *sql.DB {
 	if err = conn.Ping(); err != nil {
 		log.Fatal("Error pinging mysql database", err)
 	}
+
+	log.Println("Successfully connected to MySQL database!")
 
 	return conn
 }

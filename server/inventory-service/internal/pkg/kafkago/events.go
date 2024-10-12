@@ -1,14 +1,14 @@
 package kafkago
 
 type OrderEvent struct {
-	OrderUUID string `json:"order_uuid"`
-	ProductID int    `json:"product_id"`
-	UserID    int    `json:"user_id"`
-	Quantity  int    `json:"quantity"`
+	OrderID   int `json:"order_id"`
+	ProductID int `json:"product_id"`
+	UserID    int `json:"user_id"`
+	Quantity  int `json:"quantity"`
 }
 
 type OrderEventResp struct {
-	OrderUUID         string `json:"order_uuid"`
+	OrderID           int    `json:"order_id"`
 	ProductID         int    `json:"product_id"`
 	UserID            int    `json:"user_id"`
 	Status            string `json:"status"`

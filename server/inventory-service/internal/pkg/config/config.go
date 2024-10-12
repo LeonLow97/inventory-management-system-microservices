@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
+	"strings"
 
-	"github.com/ory/viper"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -30,30 +30,35 @@ type MySQLConfig struct {
 	Database string `mapstructure:"database"`
 }
 
+const (
+	ModeDevelopment = "development"
+	ModeDocker      = "docker"
+	ModeStaging     = "staging" // local kubernetes
+)
+
 func LoadConfig() (*Config, error) {
-	mode := os.Getenv("MODE")
+	vpr := viper.New()
+	vpr.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // Replace '.' with '_' for environment variables
+	vpr.AutomaticEnv()
+
+	mode := vpr.GetString("MODE")
 	if len(mode) == 0 {
-		mode = "development"
+		mode = "development" // Default mode
 	}
+	vpr.SetConfigName(mode)
+	vpr.AddConfigPath("/app/config")
 
-	viper.SetConfigName(mode)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/app/config")
-
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
+	if err := vpr.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Println("config file not found", err)
 			return nil, errors.New("config file not found")
-		} else {
-			log.Println("error reading config file", err)
-			return nil, err
 		}
+		log.Println("error reading config file", err)
+		return nil, err
 	}
 
 	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
+	if err := vpr.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
 

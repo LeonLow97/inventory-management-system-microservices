@@ -87,6 +87,12 @@ func (app *application) authenticationMiddleware() gin.HandlerFunc {
 // ipWhitelistMiddleware check the client's IP against a list of allowed IP addresses (whitelist)
 func (app *application) ipWhitelistMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Allow requests to the /healthcheck endpoint regardless of IP for k8s probing
+		if c.Request.URL.Path == "/healthcheck" {
+			c.Next()
+			return
+		}
+
 		clientIP := c.ClientIP()
 		if !isAllowedIP(clientIP) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})

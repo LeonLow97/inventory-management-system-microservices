@@ -34,7 +34,7 @@ func (app *Application) InitiateGRPCServer() {
 
 	// gRPC reflection for service discovery by grpc clients
 	// allows gRPC clients to discover the services and methods exposed by a gRPC server at runtime
-	// useful for service discovery, introspection tools (lik grpcurl), and debugging
+	// useful for service discovery, introspection tools (like grpcurl), and debugging
 	reflection.Register(grpcServer)
 
 	// register order grpc server

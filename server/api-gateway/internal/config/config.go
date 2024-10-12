@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -29,18 +29,25 @@ type Config struct {
 	} `mapstructure:"order_service"`
 }
 
+const (
+	ModeDevelopment = "development"
+	ModeDocker      = "docker"
+	ModeStaging     = "staging" // local kubernetes
+)
+
 func LoadConfig() (*Config, error) {
-	mode := os.Getenv("MODE")
-	if len(mode) == 0 {
-		mode = "development"
-	}
-
-	viper.SetConfigName(mode)
+	vpr := viper.New()
+	vpr.AutomaticEnv()
+	vpr.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/app/config")
 
-	// inject environment variables to override matching keys in configuration files (.yaml)
-	viper.AutomaticEnv()
+	mode := vpr.GetString("MODE")
+	if len(mode) == 0 {
+		mode = ModeDevelopment
+	}
+	viper.SetConfigName(mode)
+
+	viper.AddConfigPath("/app/config")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

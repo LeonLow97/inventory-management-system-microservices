@@ -8,7 +8,6 @@ import (
 	"github.com/LeonLow97/internal/pkg/config"
 	"github.com/LeonLow97/internal/pkg/kafkago"
 	"github.com/LeonLow97/internal/ports"
-	"github.com/google/uuid"
 )
 
 type Service interface {
@@ -57,22 +56,19 @@ func (s service) CreateOrder(ctx context.Context, req domain.Order, userID int, 
 		return err
 	}
 
-	// generate uuid for order event
-	orderUUID := uuid.New().String()
-
-	producerErrorChan := make(chan error)
-	go func() {
-		producerErrorChan <- s.repo.ProduceOrderMessage(s.cfg.KafkaConfig.BrokerAddress, kafkago.TOPIC_DECREMENT_INVENTORY, orderUUID, productID, userID, req.Quantity)
-		close(producerErrorChan)
-	}()
-
 	// create order with status 'SUBMITTED'
 	req.Status = "SUBMITTED"
-	req.OrderUUID = orderUUID
-	if err := s.repo.CreateOrder(req, userID, productID); err != nil {
+	orderID, err := s.repo.CreateOrder(req, userID, productID)
+	if err != nil {
 		log.Printf("failed to create order with error: %v\n", err)
 		return err
 	}
+
+	producerErrorChan := make(chan error)
+	go func() {
+		producerErrorChan <- s.repo.ProduceOrderMessage(s.cfg.KafkaConfig.BrokerAddress, kafkago.TOPIC_DECREMENT_INVENTORY, orderID, productID, userID, req.Quantity)
+		close(producerErrorChan)
+	}()
 
 	// wait for the goroutine to finish and capture the error (if any)
 	if err := <-producerErrorChan; err != nil {
