@@ -26,7 +26,7 @@ The API Gateway in the inventory management system microservices architecture ro
 | Endpoint                 | Microservice           | Description                                             |
 | ------------------------ | ---------------------- | ------------------------------------------------------- |
 | `/`                      | API Gateway            | Health check endpoint to verify the gateway is running. |
-| `/authenticate`          | Authentication Service | Endpoint to authenticate users (login).                 |
+| `/login`                 | Authentication Service | Endpoint to authenticate users (login).                 |
 | `/signup`                | Authentication Service | Endpoint for user registration (signup).                |
 | `/logout`                | Authentication Service | Endpoint to log out users.                              |
 | `/users`                 | User Service           | Endpoint to retrieve all users.                         |

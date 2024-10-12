@@ -1,0 +1,16 @@
+# StorageClass is a way to define and manage different types of storage available in k8s cluster.
+# It abstracts the details of the underlying storage provisioner, allowing users to dynamically
+# provision PersistentVolumes (PVs) based on different requirements and policies.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ims-storage-class
+  namespace: inventory-management-system
+# `WaitForFirstConsumer` ensures that the volume is bound to a specific node only after a Pod
+# is scheduled to that node
+volumeBindingMode: WaitForFirstConsumer
+provisioner: kubernetes.io/no-provisioner # dev, no provision, need to manually create PVs
+
+# provisioner: kubernetes.io/aws-ebs # production, storage in the cloud
+# parameters:
+#   type: gp2

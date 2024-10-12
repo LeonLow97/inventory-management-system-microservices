@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentication-headless-service
+  namespace: inventory-management-system
+  labels:
+    ims: authentication
+spec:
+  # `clusterIP: None` ensures that the service does not get assigned an IP address, which is important
+  # for StatefulSet as it allows Pods to be accessed using their stable DNS names
+  clusterIP: None # headless service
+  selector:
+    ims: authentication-postgres
+  ports:
+    - name: authentication-postgres-h
+      port: 5432
+      targetPort: 5432
