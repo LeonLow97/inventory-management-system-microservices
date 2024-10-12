@@ -6,8 +6,6 @@ services:
       context: ./../api-gateway
       dockerfile: ./../api-gateway/Dockerfile
     restart: always
-    volumes:
-      - ../api-gateway/logs/:/logs/
     ports:
       - "80:80"
     depends_on:
@@ -49,10 +47,10 @@ services:
       POSTGRES_USER: authentication-postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: imsdb
-    volumes:
+    # volumes:
       # using volumes instead of bind mounts
       # - postgres-authentication:/var/lib/postgresql/data
-      - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-authentication-db.sql
+      # - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-authentication-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
@@ -93,10 +91,10 @@ services:
       MYSQL_USER: inventory-mysql
       MYSQL_PASSWORD: password
       MYSQL_DATABASE: imsdb
-    volumes:
+    # volumes:
       # using volumes instead of bind mounts
       # - mysql:/var/lib/mysql
-      - ./init-db/init-inventory-db.sql:/docker-entrypoint-initdb.d/init-inventory-db.sql
+      # - ./init-db/init-inventory-db.sql:/docker-entrypoint-initdb.d/init-inventory-db.sql
     healthcheck:
       test: mysqladmin ping -u$$MYSQL_USER -p$$MYSQL_PASSWORD
       interval: 10s
@@ -136,10 +134,10 @@ services:
       POSTGRES_USER: order-postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: imsdb
-    volumes:
+    # volumes:
       # using volumes instead of bind mounts
       # - postgres-order:/var/lib/postgresql/data
-      - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-order-db.sql
+      # - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-order-db.sql
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
@@ -176,6 +174,13 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  consul:
+    image: hashicorp/consul:1.15.4
+    ports:
+      - "8500:8500" # Web UI
+      - "8600:8600/udp" # DNS interface
+    command: agent -dev -client=0.0.0.0
 
 volumes:
   postgres-authentication:

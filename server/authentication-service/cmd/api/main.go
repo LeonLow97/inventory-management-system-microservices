@@ -8,6 +8,7 @@ import (
 	"github.com/LeonLow97/internal/adapters/outbound"
 	"github.com/LeonLow97/internal/core/services"
 	"github.com/LeonLow97/internal/pkg/config"
+	"github.com/LeonLow97/internal/pkg/consul"
 	"github.com/LeonLow97/internal/pkg/grpcserver"
 	postgres_conn "github.com/LeonLow97/internal/pkg/postgres"
 )
@@ -33,6 +34,12 @@ func main() {
 	}
 
 	go app.InitiateGRPCServer()
+
+	// register authentication microservice with service discovery consul
+	serviceDiscovery := consul.NewConsul(*cfg)
+	if err := serviceDiscovery.RegisterService(); err != nil {
+		log.Fatalf("failed to register authentication microservice with error: %v\n", err)
+	}
 
 	select {}
 }

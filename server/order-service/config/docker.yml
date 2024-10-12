@@ -16,3 +16,7 @@ postgres:
   host: order-postgres
   port: 5432
   db: imsdb
+
+hashicorp_consul:
+  port: 8500
+  address: host.docker.internal

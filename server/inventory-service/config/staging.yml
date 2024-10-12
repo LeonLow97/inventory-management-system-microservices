@@ -13,3 +13,7 @@ mysql:
   host: FROM_K8S
   port: 3306
   database: FROM_K8S
+
+hashicorp_consul:
+  port: 8500
+  address: consul

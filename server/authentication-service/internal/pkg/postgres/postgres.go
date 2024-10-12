@@ -40,6 +40,63 @@ func ConnectToPostgreSQL(cfg config.Config) (*sqlx.DB, error) {
 		return nil, err
 	}
 
+	if cfg.Mode == config.ModeDocker {
+		if err := CreateTableAndInsertDummyData(db); err != nil {
+			log.Println("failed to create tables and insert dummy data with error:", err)
+		}
+	}
+
 	log.Println("Successfully connected to Postgres database!")
 	return db, nil
+}
+
+// CreateTableAndInsertDummyData creates a table and inserts dummy data into it.
+func CreateTableAndInsertDummyData(db *sqlx.DB) error {
+	// Use a transaction to combine the operations
+	tx, err := db.Beginx()
+	if err != nil {
+		log.Println("failed to begin transaction:", err)
+		return err
+	}
+
+	// Define the combined SQL statement
+	sql := `
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			first_name VARCHAR(50),
+			last_name VARCHAR(50),
+			username VARCHAR(50) NOT NULL UNIQUE,
+			password VARCHAR(60) NOT NULL,
+			email VARCHAR(100) NOT NULL,
+			active INT NOT NULL DEFAULT 1,
+			admin INT NOT NULL DEFAULT 0,
+			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), 
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX idx_users_username ON users (username);
+
+		INSERT INTO users (first_name, last_name, username, password, email)
+		VALUES
+			('Jie Wei', 'Low', 'lowjiewei', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'lowjiewei@email.com'),
+			('Leon', 'Low', 'leonlow', '$2a$10$OULOXURo57bo5keyNXGQxefqMyEM67JIscqLVKWgd/S.siCqNAHdC', 'leonlow@email.com');
+	`
+
+	// Execute the combined SQL statement
+	if _, err := tx.Exec(sql); err != nil {
+		log.Println("failed to execute SQL statements:", err)
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Println("failed to rollback transaction:", rollbackErr)
+		}
+		return err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		log.Println("failed to commit transaction:", err)
+		return err
+	}
+
+	log.Println("Successfully created table and inserted dummy data!")
+	return nil
 }

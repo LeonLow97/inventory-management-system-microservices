@@ -21,7 +21,7 @@ The API Gateway in the inventory management system microservices architecture ro
 | Monitoring (Prometheus, Grafana, Datadog) | For tracking performance metrics, system health and alerts                                                       |    [ ]    |
 |             Service Discovery             | Using `Hashicorp Consul` to dynamically route requests to available instances of microservices                   |    [ ]    |
 
-# Endpoints
+# Endpoints (HTTP - REST)
 
 | Endpoint                 | Microservice           | Description                                             |
 | ------------------------ | ---------------------- | ------------------------------------------------------- |
@@ -29,8 +29,8 @@ The API Gateway in the inventory management system microservices architecture ro
 | `/login`                 | Authentication Service | Endpoint to authenticate users (login).                 |
 | `/signup`                | Authentication Service | Endpoint for user registration (signup).                |
 | `/logout`                | Authentication Service | Endpoint to log out users.                              |
-| `/users`                 | User Service           | Endpoint to retrieve all users.                         |
-| `/user`                  | User Service           | Endpoint to update user information.                    |
+| `/users`                 | Authentication Service | Endpoint to retrieve all Authentications.               |
+| `/user`                  | Authentication Service | Endpoint to update user information.                    |
 | `/inventory/products`    | Inventory Service      | Endpoint to retrieve all products.                      |
 | `/inventory/product/:id` | Inventory Service      | Endpoint to retrieve a product by ID.                   |
 | `/inventory/product`     | Inventory Service      | Endpoint to create a new product.                       |

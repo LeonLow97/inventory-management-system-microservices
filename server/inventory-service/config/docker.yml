@@ -13,3 +13,7 @@ mysql:
   host: inventory-mysql
   port: 3306
   database: imsdb
+
+hashicorp_consul:
+  port: 8500
+  address: host.docker.internal

@@ -10,12 +10,14 @@ import (
 )
 
 type Config struct {
+	Mode   string `mapstructure:"mode"`
 	Server struct {
 		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"server"`
-	KafkaConfig KafkaConfig `mapstructure:"kafka"`
-	MySQLConfig MySQLConfig `mapstructure:"mysql"`
+	KafkaConfig           KafkaConfig           `mapstructure:"kafka"`
+	MySQLConfig           MySQLConfig           `mapstructure:"mysql"`
+	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
 }
 
 type KafkaConfig struct {
@@ -28,6 +30,13 @@ type MySQLConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	Database string `mapstructure:"database"`
+}
+
+type HashicorpConsulConfig struct {
+	ID      string `mapstructure:"id"`
+	Name    string `mapstructure:"name"`
+	Port    int    `mapstructure:"port"`
+	Address string `mapstructure:"address"`
 }
 
 const (

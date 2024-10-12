@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	Mode   string `mapstructure:"mode"`
 	Server struct {
 		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
@@ -17,6 +18,7 @@ type Config struct {
 	InventoryService InventoryService `mapstructure:"inventory_service"`
 	KafkaConfig      KafkaConfig      `mapstructure:"kafka"`
 	PostgresConfig   PostgresConfig   `mapstructure:"postgres"`
+	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
 }
 
 type InventoryService struct {
@@ -33,6 +35,13 @@ type PostgresConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	DB       string `mapstructure:"db"`
+}
+
+type HashicorpConsulConfig struct {
+	ID      string `mapstructure:"id"`
+	Name    string `mapstructure:"name"`
+	Port    int    `mapstructure:"port"`
+	Address string `mapstructure:"address"`
 }
 
 const (

@@ -16,3 +16,7 @@ postgres:
   host: FROM_K8S
   port: 5432
   db: FROM_K8S
+
+hashicorp_consul:
+  port: 8500
+  address: consul

@@ -15,8 +15,9 @@ type Config struct {
 		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"server"`
-	JWTConfig      JWTConfig      `mapstructure:"jwt"`
-	PostgresConfig PostgresConfig `mapstructure:"postgres"`
+	JWTConfig             JWTConfig             `mapstructure:"jwt"`
+	PostgresConfig        PostgresConfig        `mapstructure:"postgres"`
+	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
 }
 
 type JWTConfig struct {
@@ -30,6 +31,13 @@ type PostgresConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	DB       string `mapstructure:"db"`
+}
+
+type HashicorpConsulConfig struct {
+	ID      string `mapstructure:"id"`
+	Name    string `mapstructure:"name"`
+	Port    int    `mapstructure:"port"`
+	Address string `mapstructure:"address"`
 }
 
 const (
