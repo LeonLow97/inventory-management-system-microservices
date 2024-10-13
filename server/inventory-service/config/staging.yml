@@ -1,7 +1,7 @@
 mode: 'staging'
 
 server:
-  name: 'inventory-service'
+  name: inventory-clusterip
   port: 8002
 
 kafka:

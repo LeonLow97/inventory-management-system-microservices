@@ -1,7 +1,7 @@
 mode: "staging"
 
 server:
-  name: "order-service"
+  name: order-clusterip
   port: 8003
 
 kafka:

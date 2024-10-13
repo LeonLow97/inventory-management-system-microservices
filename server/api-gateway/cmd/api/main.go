@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"log"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/LeonLow97/internal/core/services/inventory"
 	"github.com/LeonLow97/internal/core/services/order"
 	"github.com/LeonLow97/internal/core/services/user"
+	"github.com/LeonLow97/internal/pkg/consul"
 )
 
 type application struct {
@@ -31,7 +34,21 @@ func main() {
 		return
 	}
 
-	grpcClient := grpcclient.NewGRPCClient(cfg)
+	// create a consul client
+	hashicorpConsul := consul.NewConsul(*cfg)
+	hashicorpClient, err := hashicorpConsul.NewConsul(*cfg)
+	if err != nil {
+		log.Fatalf("failed to create hashicorp consul client with error: %v\n", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	if err := hashicorpClient.RefreshServices(ctx); err != nil {
+		log.Fatalln("failed to refresh services")
+	}
+
+	grpcClient := grpcclient.NewGRPCClient(*cfg, hashicorpClient)
 	defer grpcClient.AuthenticationClient().Close()
 	defer grpcClient.InventoryClient().Close()
 	defer grpcClient.OrderClient().Close()

@@ -19,14 +19,22 @@ type Config struct {
 		Secret string `mapstructure:"secret"`
 	} `mapstructure:"jwt"`
 	AuthService struct {
-		URL string `mapstructure:"url"`
+		Name string `mapstructure:"name"`
 	} `mapstructure:"auth_service"`
 	InventoryService struct {
-		URL string `mapstructure:"url"`
+		Name string `mapstructure:"name"`
 	} `mapstructure:"inventory_service"`
 	OrderService struct {
-		URL string `mapstructure:"url"`
+		Name string `mapstructure:"name"`
 	} `mapstructure:"order_service"`
+	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
+}
+
+type HashicorpConsulConfig struct {
+	ID      string `mapstructure:"id"`
+	Name    string `mapstructure:"name"`
+	Port    int    `mapstructure:"port"`
+	Address string `mapstructure:"address"`
 }
 
 const (

@@ -1,7 +1,7 @@
 mode: "docker"
 
 server:
-  name: authentication-service
+  name: authentication-clusterip
   port: 8001
 
 jwt:

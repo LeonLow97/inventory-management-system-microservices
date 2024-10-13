@@ -8,7 +8,7 @@ When a customer places an order, the inventory count is updated, providing real-
 
 In addition to inventory tracking, the system records customer details during each purchase, along with cost and profit for each item sold. This comprehensive data allows you to analyze product performance by brand and category, giving you deeper insights into your inventory management. Ultimately, this system empowers you to maintain optimal inventory levels and enhances your overall business efficiency.
 
-This project was originally created to support my online business at [YourHypeStore](https://www.carousell.com/u/yourhypestore)
+This project was originally created to support my online business at [YourHypeStore](https://www.carousell.sg/u/yourhypestore)
 
 ## Architecture
 

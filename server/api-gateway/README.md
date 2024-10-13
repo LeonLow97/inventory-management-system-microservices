@@ -17,9 +17,9 @@ The API Gateway in the inventory management system microservices architecture ro
 |              IP Whitelisting              | Using `gin-gonic`'s `c.ClientIP()` to retrieve and restrict access based on IP addresses                         |    [x]    |
 |               Rate Limiter                | Using `golang.org/x/time/rate` which uses Token Bucket Algorithm, limiting requests based on client IP addresses |    [x]    |
 |   gRPC Communication with Microservices   | For efficient, low-latency communication between services                                                        |    [x]    |
+|             Service Discovery             | Using `Hashicorp Consul` to dynamically route requests to available instances of microservices                   |    [X]    |
 |            Logging (ELK Stack)            | To capture, store and visualize logs for better debugging and monitoring                                         |    [ ]    |
 | Monitoring (Prometheus, Grafana, Datadog) | For tracking performance metrics, system health and alerts                                                       |    [ ]    |
-|             Service Discovery             | Using `Hashicorp Consul` to dynamically route requests to available instances of microservices                   |    [ ]    |
 
 # Endpoints (HTTP - REST)
 
