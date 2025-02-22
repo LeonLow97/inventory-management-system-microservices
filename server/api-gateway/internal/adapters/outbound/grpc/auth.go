@@ -20,7 +20,7 @@ func NewAuthRepo(conn *grpc.ClientConn) ports.AuthRepo {
 }
 
 func (r *AuthRepo) Login(ctx context.Context, req domain.User) (*domain.User, error) {
-	grpcReq := &pb.AuthRequest{
+	grpcReq := &pb.LoginRequest{
 		Username: req.Username,
 		Password: req.Password,
 	}

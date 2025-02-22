@@ -9,8 +9,8 @@ import (
 )
 
 type Service interface {
-	Login(ctx context.Context, username, password string) (*domain.User, string, error)
-	SignUp(ctx context.Context, user *domain.User) error
+	Login(ctx context.Context, loginInput domain.LoginInput) (*domain.User, string, error)
+	SignUp(ctx context.Context, signupInput domain.SignUpInput) error
 
 	UpdateUser(ctx context.Context, user *domain.User) error
 	GetUsers(ctx context.Context) (*[]domain.User, error)

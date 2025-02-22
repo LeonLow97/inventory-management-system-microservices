@@ -10,16 +10,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s service) Login(ctx context.Context, username, password string) (*domain.User, string, error) {
-	// retrieve user details by username
-	user, err := s.repo.GetUserByUsername(ctx, username)
+// Login performs authentication with bcrypt comparison of hashed password and provided password
+func (s service) Login(ctx context.Context, loginInput domain.LoginInput) (*domain.User, string, error) {
+	// Retrieve user details by username
+	user, err := s.repo.GetUserByUsername(ctx, loginInput.Username)
 	if err != nil {
-		log.Printf("failed to retrieve user by username '%s' during login with error: %v\n", username, err)
+		log.Printf("failed to retrieve user by username '%s' during login with error: %v\n", loginInput.Username, err)
 		return nil, "", err
 	}
 
-	// compare db hashed password with user supplied plain text password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	// Compare hashed password with user supplied plain text password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginInput.Password)); err != nil {
 		switch {
 		case err == bcrypt.ErrMismatchedHashAndPassword,
 			err == bcrypt.ErrHashTooShort:
@@ -31,13 +32,13 @@ func (s service) Login(ctx context.Context, username, password string) (*domain.
 		}
 	}
 
-	// check user account status
+	// Check if user is inactive
 	if user.Active == 0 {
 		log.Printf("user id '%d' is inactive\n", user.ID)
 		return nil, "", ErrInactiveUser
 	}
 
-	// generate JWT token for user
+	// Generate JWT token for user
 	token, err := utils.GenerateJWTToken(user, time.Duration(s.cfg.JWTConfig.Expiry)*time.Minute, s.cfg.JWTConfig.SecretKey)
 	if err != nil {
 		log.Printf("failed to generate JWT token for user id '%d'\n", user.ID)
@@ -47,36 +48,44 @@ func (s service) Login(ctx context.Context, username, password string) (*domain.
 	return user, token, err
 }
 
-func (s service) SignUp(ctx context.Context, user *domain.User) error {
-	if !utils.IsValidPassword(user.Email) {
-		log.Printf("invalid email format '%s'\n", user.Email)
+func (s service) SignUp(ctx context.Context, signupInput domain.SignUpInput) error {
+	// TODO: Shift this to the API Gateway to perform validation
+	if !utils.IsValidPassword(signupInput.Email) {
+		log.Printf("invalid email format '%s'\n", signupInput.Email)
 		return ErrInvalidEmailFormat
 	}
-	if !utils.IsValidPassword(user.Password) {
+	// TODO: Shift this to the API Gateway to perform validation
+	if !utils.IsValidPassword(signupInput.Password) {
 		log.Println("invalid password format")
 		return ErrInvalidPasswordFormat
 	}
 
-	taken, err := s.repo.IsUsernameTaken(ctx, user.Username)
+	taken, err := s.repo.IsUsernameTaken(ctx, signupInput.Username)
 	if err != nil {
-		log.Printf("failed to check if username has been taken for username '%s' with error: %v\n", user.Username, err)
+		log.Printf("failed to check if username has been taken for username '%s' with error: %v\n", signupInput.Username, err)
 		return err
 	}
-
 	if taken {
 		return ErrUsernameTaken
 	}
 
 	// bcrypt hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(signupInput.Password), 10)
 	if err != nil {
-		log.Printf("failed to hash password for username '%s' with error: %v\n", user.Username, err)
+		log.Printf("failed to hash password for username '%s' with error: %v\n", signupInput.Username, err)
 		return err
 	}
-	user.Password = string(hashedPassword)
 
 	// create user
+	user := &domain.User{
+		FirstName: signupInput.FirstName,
+		LastName:  signupInput.LastName,
+		Username:  signupInput.Username,
+		Password:  string(hashedPassword),
+		Email:     signupInput.Email,
+	}
 	if err := s.repo.InsertUser(ctx, user); err != nil {
+		log.Printf("failed to insert user during signup with error: %v\n", err)
 		return err
 	}
 

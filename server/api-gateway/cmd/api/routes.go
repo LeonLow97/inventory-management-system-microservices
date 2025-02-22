@@ -3,14 +3,18 @@ package main
 import (
 	"net/http"
 
+	"github.com/LeonLow97/internal/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func (app *application) routes() *gin.Engine {
+	// Application Middlewares tto process requests
+	middleware := middleware.NewMiddleware(*app.Config)
+
 	router := gin.Default()
 
 	router.Use(app.ipWhitelistMiddleware())
-	router.Use(app.rateLimitMiddleware())
+	router.Use(middleware.RateLimitingMiddleware())
 
 	// for checking if api gateway service is healthy and running
 	router.GET("/healthcheck", func(c *gin.Context) {
@@ -23,12 +27,12 @@ func (app *application) routes() *gin.Engine {
 	router.POST("/logout", app.AuthHandler.Logout())
 
 	// authentication (user) microservice endpoints
-	router.GET("/users", app.authenticationMiddleware(), app.UserHandler.GetUsers())
-	router.PATCH("/user", app.authenticationMiddleware(), app.UserHandler.UpdateUser())
+	router.GET("/users", middleware.JWTAuthMiddleware(), app.UserHandler.GetUsers())
+	router.PATCH("/user", middleware.JWTAuthMiddleware(), app.UserHandler.UpdateUser())
 
 	// inventory microservice endpoints
 	inventoryServiceRouter := router.Group("/inventory")
-	inventoryServiceRouter.Use(app.authenticationMiddleware())
+	inventoryServiceRouter.Use(middleware.JWTAuthMiddleware())
 
 	inventoryServiceRouter.GET("/products", app.InventoryHandler.GetProducts())
 	inventoryServiceRouter.GET("/product/:id", app.InventoryHandler.GetProductByID())
@@ -38,7 +42,7 @@ func (app *application) routes() *gin.Engine {
 
 	// order microservice
 	orderServiceRouter := router.Group("")
-	orderServiceRouter.Use(app.authenticationMiddleware())
+	orderServiceRouter.Use(middleware.JWTAuthMiddleware())
 
 	orderServiceRouter.GET("/orders", app.OrderHandler.GetOrders())
 	orderServiceRouter.GET("/order/:id", app.OrderHandler.GetOrder())

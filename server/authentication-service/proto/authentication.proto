@@ -3,16 +3,16 @@ syntax = "proto3";
 option go_package = "./proto";
 
 service AuthenticationService {
-    rpc Login(AuthRequest) returns (AuthResponse);
+    rpc Login(LoginRequest) returns (LoginResponse);
     rpc SignUp(SignUpRequest) returns (SignUpResponse);
 }
 
-message AuthRequest {
+message LoginRequest {
     string username = 1;
     string password = 2;
 }
 
-message AuthResponse {
+message LoginResponse {
     string first_name = 1;
     string last_name = 2;
     string username = 3;

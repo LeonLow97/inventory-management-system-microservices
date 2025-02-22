@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -40,36 +39,45 @@ type HashicorpConsulConfig struct {
 	Address string `mapstructure:"address"`
 }
 
-const (
-	ModeDevelopment = "development"
-	ModeDocker      = "docker"
-	ModeStaging     = "staging" // local kubernetes
-)
-
+// LoadConfig reads configuration based on the current mode.
+// It loads environment variables, reads the config file, and Unmarshal it into a Config struct
 func LoadConfig() (*Config, error) {
+	// Create a new Viper instance to manage configuration settings
 	vpr := viper.New()
-	vpr.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // Replace '.' with '_' for environment variables
+
+	// Replace '.' with '_' in environment variable names to match common conventions
+	// E.g., "DATABASE.HOST" becomes "DATABASE_HOST"
+	vpr.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Automatically bind environment variables to Viper keys
+	// This allows configuration values to be overridden by environment variables
 	vpr.AutomaticEnv()
 
+	// Retrieve the "MODE" environment variable to determine the configuration mode
+	// If not set, default to Development mode
 	mode := vpr.GetString("MODE")
-	if len(mode) == 0 {
-		mode = "development" // Default mode
+	if mode == "" {
+		mode = ModeDevelopment
 	}
+
+	// Set the configuration file name based on the mode (e.g., "development.yaml")
 	vpr.SetConfigName(mode)
+
+	// Add the directory "/app/config" as a location to search for the configuration file
 	vpr.AddConfigPath("/app/config")
 
 	if err := vpr.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Println("config file not found", err)
-			return nil, errors.New("config file not found")
+			return nil, fmt.Errorf("config file not found with error: %v", err)
 		}
-		log.Println("error reading config file", err)
+		log.Println("Failed to read config file using Viper with error:", err)
 		return nil, err
 	}
 
+	// Unmarshal the configuration file into the Config struct
 	var config Config
 	if err := vpr.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal config with error: %v", err)
 	}
 
 	return &config, nil

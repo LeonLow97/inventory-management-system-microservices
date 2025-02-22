@@ -52,7 +52,7 @@ func (c *Consul) RefreshServices(ctx context.Context) error {
 				return fmt.Errorf("failed to discover services from Consul: %v", err)
 			}
 
-			if len(services) == 3 {
+			if len(services) > 0 {
 				c.services = services
 				return nil
 			}

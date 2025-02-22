@@ -11,8 +11,6 @@ import (
 	grpcclient "github.com/LeonLow97/internal/adapters/outbound/grpc"
 	"github.com/LeonLow97/internal/config"
 	"github.com/LeonLow97/internal/core/services/auth"
-	"github.com/LeonLow97/internal/core/services/inventory"
-	"github.com/LeonLow97/internal/core/services/order"
 	"github.com/LeonLow97/internal/core/services/user"
 	"github.com/LeonLow97/internal/pkg/consul"
 )
@@ -50,8 +48,8 @@ func main() {
 
 	grpcClient := grpcclient.NewGRPCClient(*cfg, hashicorpClient)
 	defer grpcClient.AuthenticationClient().Close()
-	defer grpcClient.InventoryClient().Close()
-	defer grpcClient.OrderClient().Close()
+	// defer grpcClient.InventoryClient().Close()
+	// defer grpcClient.OrderClient().Close()
 
 	// instantiating auth microservice
 	authRepo := grpcclient.NewAuthRepo(grpcClient.AuthenticationClient())
@@ -63,24 +61,24 @@ func main() {
 	userService := user.NewUserService(userRepo)
 	userHandler := web.NewUserHandler(userService)
 
-	// instantiating inventory microservice
-	inventoryRepo := grpcclient.NewInventoryRepo(grpcClient.InventoryClient())
-	inventoryService := inventory.NewInventoryService(inventoryRepo)
-	inventoryHandler := web.NewInventoryHandler(inventoryService)
+	// // instantiating inventory microservice
+	// inventoryRepo := grpcclient.NewInventoryRepo(grpcClient.InventoryClient())
+	// inventoryService := inventory.NewInventoryService(inventoryRepo)
+	// inventoryHandler := web.NewInventoryHandler(inventoryService)
 
-	// instantiating order microservice
-	orderRepo := grpcclient.NewOrderRepo(grpcClient.OrderClient())
-	orderService := order.NewOrderService(orderRepo)
-	orderHandler := web.NewOrderHandler(orderService)
+	// // instantiating order microservice
+	// orderRepo := grpcclient.NewOrderRepo(grpcClient.OrderClient())
+	// orderService := order.NewOrderService(orderRepo)
+	// orderHandler := web.NewOrderHandler(orderService)
 
 	// setup application config
 	app := application{
-		Config:           cfg,
-		GRPCClient:       grpcClient,
-		AuthHandler:      authHandler,
-		UserHandler:      userHandler,
-		InventoryHandler: inventoryHandler,
-		OrderHandler:     orderHandler,
+		Config:      cfg,
+		GRPCClient:  grpcClient,
+		AuthHandler: authHandler,
+		UserHandler: userHandler,
+		// InventoryHandler: inventoryHandler,
+		// OrderHandler:     orderHandler,
 	}
 
 	// getting router with gin engine

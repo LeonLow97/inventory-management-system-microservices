@@ -30,26 +30,26 @@ func NewGRPCClient(cfg config.Config, consul *consul.Consul) GRPCClient {
 
 	services := consul.GetServices()
 	authService := services[cfg.AuthService.Name]
-	inventoryService := services[cfg.InventoryService.Name]
-	orderService := services[cfg.OrderService.Name]
+	// inventoryService := services[cfg.InventoryService.Name]
+	// orderService := services[cfg.OrderService.Name]
 
 	authConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", authService.Service, authService.Port))
 	if err != nil {
 		log.Fatalf("Error dialing authentication microservice gRPC: %v", err)
 	}
-	inventoryConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", inventoryService.Service, inventoryService.Port))
-	if err != nil {
-		log.Fatalf("Error dialing inventory microservice gRPC: %v", err)
-	}
-	orderConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", orderService.Service, orderService.Port))
-	if err != nil {
-		log.Fatalf("Error dialing order microservice gRPC: %v", err)
-	}
+	// inventoryConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", inventoryService.Service, inventoryService.Port))
+	// if err != nil {
+	// 	log.Fatalf("Error dialing inventory microservice gRPC: %v", err)
+	// }
+	// orderConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", orderService.Service, orderService.Port))
+	// if err != nil {
+	// 	log.Fatalf("Error dialing order microservice gRPC: %v", err)
+	// }
 
 	return &grpcClientConn{
-		orderConn:     orderConn,
-		inventoryConn: inventoryConn,
-		authConn:      authConn,
+		// orderConn:     orderConn,
+		// inventoryConn: inventoryConn,
+		authConn: authConn,
 	}
 }
 

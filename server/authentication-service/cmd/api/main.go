@@ -9,23 +9,23 @@ import (
 	"github.com/LeonLow97/internal/core/services"
 	"github.com/LeonLow97/internal/pkg/config"
 	"github.com/LeonLow97/internal/pkg/consul"
+	"github.com/LeonLow97/internal/pkg/db"
 	"github.com/LeonLow97/internal/pkg/grpcserver"
-	postgres_conn "github.com/LeonLow97/internal/pkg/postgres"
 )
 
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalln("failed to load config with error:", err)
+		log.Fatalln("Failed to load config with error:", err)
 	}
 
-	db, err := postgres_conn.ConnectToPostgreSQL(*cfg)
+	conn, err := db.ConnectToDB(*cfg)
 	if err != nil {
-		log.Fatalf("failed to connect to postgres db: %v\n", err)
+		log.Fatalln("Failed to connect to database with error:", err)
 	}
 
 	// initialize grpc authentication and user services
-	repo := outbound.NewRepository(db)
+	repo := outbound.NewRepository(conn)
 	service := services.NewService(repo, *cfg)
 
 	app := grpcserver.Application{
