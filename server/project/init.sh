@@ -5,6 +5,7 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 echo "init api-gateway service"
 cd ../api-gateway
 gofmt -w .
+go mod edit -go 1.23
 go mod tidy
 grep -rnw './' -e 'fmt.Println'
 protoc --go_out=. --go-grpc_out=. proto/authentication.proto
@@ -15,6 +16,7 @@ protoc --go_out=. --go-grpc_out=. proto/order.proto
 echo "init authentication microservice"
 cd ../authentication-service
 gofmt -w .
+go mod edit -go 1.23
 go mod tidy
 grep -rnw './' -e 'fmt.Println'
 protoc --go_out=. --go-grpc_out=. proto/authentication.proto
@@ -23,6 +25,7 @@ protoc --go_out=. --go-grpc_out=. proto/users.proto
 echo "init inventory microservice"
 cd ../inventory-service
 gofmt -w .
+go mod edit -go 1.23
 go mod tidy
 grep -rnw './' -e 'fmt.Println'
 protoc --go_out=. --go-grpc_out=. proto/inventory.proto
@@ -30,6 +33,7 @@ protoc --go_out=. --go-grpc_out=. proto/inventory.proto
 echo "init order microservice"
 cd ../order-service
 gofmt -w .
+go mod edit -go 1.23
 go mod tidy
 grep -rnw './' -e 'fmt.Println'
 protoc --go_out=. --go-grpc_out=. proto/order.proto

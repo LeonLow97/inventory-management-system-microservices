@@ -15,9 +15,9 @@ type Config struct {
 		Name string `mapstructure:"name"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"server"`
-	InventoryService InventoryService `mapstructure:"inventory_service"`
-	KafkaConfig      KafkaConfig      `mapstructure:"kafka"`
-	PostgresConfig   PostgresConfig   `mapstructure:"postgres"`
+	InventoryService      InventoryService      `mapstructure:"inventory_service"`
+	KafkaConfig           KafkaConfig           `mapstructure:"kafka"`
+	PostgresConfig        PostgresConfig        `mapstructure:"postgres"`
 	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
 }
 

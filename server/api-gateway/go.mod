@@ -1,13 +1,12 @@
 module github.com/LeonLow97
 
-go 1.19
+go 1.23
 
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/hashicorp/consul/api v1.28.2
-	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.19.0
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.62.1
