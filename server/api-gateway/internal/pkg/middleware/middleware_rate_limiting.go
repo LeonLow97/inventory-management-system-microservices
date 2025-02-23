@@ -1,78 +1,64 @@
 package middleware
 
 import (
+	"errors"
 	"log"
-	"net"
-	"sync"
-	"time"
+	"net/http"
 
 	"github.com/LeonLow97/internal/pkg/apierror"
+	"github.com/LeonLow97/internal/pkg/contextstore"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/time/rate"
+	"github.com/go-redis/redis/v8"
 )
 
 func (m *Middleware) RateLimitingMiddleware() gin.HandlerFunc {
-	// create a client type to store the last seen timing of the last request from client
-	type client struct {
-		limiter  *rate.Limiter
-		lastSeen time.Time
-	}
-
-	// create a rate limiter map for client IP Addresses
-	var (
-		// using another mutex so it does not block `clients` map during cleanup
-		// in case there are many ip addresses in the map and the for loop takes a long time to execute
-		cleanUpMu       sync.Mutex
-		ipRateLimiterMu sync.Mutex
-		// key is client IP Address
-		clients = make(map[string]*client)
-	)
-
-	// launching a goroutine in the background to remove entries from clients map
-	// where lastSeen of last request made is more than 3 minutes, run this goroutine every minute
-	go func() {
-		for {
-			time.Sleep(time.Minute)
-			// Lock before starting to clean `clients` map
-			cleanUpMu.Lock()
-			for ip, client := range clients {
-				// if last seen is more than 3 minutes, remove this ip address from the `clients` map
-				if time.Since(client.lastSeen) > 3*time.Minute {
-					delete(clients, ip)
-				}
-			}
-			cleanUpMu.Unlock()
-		}
-	}()
-
 	return func(c *gin.Context) {
-		// get the IP Address of the client in the http request
-		ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+		// Retrieve user ID from request context
+		userID, err := contextstore.UserIDFromContext(c)
 		if err != nil {
-			log.Println(err)
+			switch {
+			case errors.Is(err, contextstore.ErrUserIDNotInContext):
+				apierror.ErrUnauthorized.APIError(c)
+			default:
+				apierror.ErrInternalServerError.APIError(c)
+			}
+			return
+		}
+
+		// Dynamically retrieve bucket name based on request http method
+		// TODO: Refactor this section to also include authentication bucket
+		bucketName := m.cfg.RateLimiting.DistributedLocks.Global
+		if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodPut ||
+			c.Request.Method == http.MethodPatch || c.Request.Method == http.MethodDelete {
+			bucketName = m.cfg.RateLimiting.DistributedLocks.Write
+		} else if c.Request.Method == http.MethodGet {
+			bucketName = m.cfg.RateLimiting.DistributedLocks.Read
+		}
+
+		// Try to acquire a lock before modifying the token count
+		if !m.appCache.AcquireLock(c, userID, bucketName) {
+			log.Println("could not acquire distributed lock, try again later") // TODO: remove log in future to avoid flooding logs
+			apierror.ErrTooManyRequests.APIError(c)
+			return
+		}
+		defer m.appCache.ReleaseLock(c, userID, bucketName)
+
+		// Retrieve current token count
+		key := m.appCache.UserTokenBucketKey(userID, bucketName)
+		currentTokens, err := m.appCache.RedisClient.Get(c, key).Int()
+		if err != nil && err != redis.Nil {
+			log.Println("failed to fetch token counts with error:", err)
 			apierror.ErrInternalServerError.APIError(c)
 			return
 		}
 
-		ipRateLimiterMu.Lock()
-		log.Println("Chaewon!!")
-		// assign a new rate limiter to the client ip address if it doesn't exist in `clients` map
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{
-				// 1st argument (rate limit): 2 requests per second
-				// 2nd argument (burst limit): allowing a burst up to 4 requests beyond the rate limit before further requests are limited
-				limiter: rate.NewLimiter(2, 4),
-			}
-		}
-		ipRateLimiterMu.Unlock()
-
-		// update the last seen time of the client to now
-		clients[ip].lastSeen = time.Now()
-
-		// check if the request is allowed
-		if !clients[ip].limiter.Allow() {
+		// Check if there are available tokens
+		if currentTokens == 0 {
 			apierror.ErrTooManyRequests.APIError(c)
 			return
+		}
+		if currentTokens > 0 {
+			m.appCache.RedisClient.Decr(c, key)
 		}
 
 		c.Next()

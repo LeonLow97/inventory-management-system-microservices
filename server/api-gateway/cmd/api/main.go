@@ -12,12 +12,14 @@ import (
 	"github.com/LeonLow97/internal/config"
 	"github.com/LeonLow97/internal/core/services/auth"
 	"github.com/LeonLow97/internal/core/services/user"
+	"github.com/LeonLow97/internal/pkg/cache"
 	"github.com/LeonLow97/internal/pkg/consul"
 )
 
 type application struct {
 	Config           *config.Config
 	GRPCClient       grpcclient.GRPCClient
+	AppCache         cache.Cache
 	AuthHandler      *web.AuthHandler
 	UserHandler      *web.UserHandler
 	InventoryHandler *web.InventoryHandler
@@ -31,6 +33,9 @@ func main() {
 		log.Fatalln("failed to load config with error", err)
 		return
 	}
+
+	// Load application cache
+	appCache := cache.NewRedisClient(*cfg)
 
 	// create a consul client
 	hashicorpConsul := consul.NewConsul(*cfg)
@@ -74,6 +79,7 @@ func main() {
 	// setup application config
 	app := application{
 		Config:      cfg,
+		AppCache:    appCache,
 		GRPCClient:  grpcClient,
 		AuthHandler: authHandler,
 		UserHandler: userHandler,

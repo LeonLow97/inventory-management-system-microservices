@@ -19,3 +19,16 @@ order_service:
 hashicorp_consul:
   port: 8500
   address: host.docker.internal
+
+redis_server:
+  port: 6379
+  address: host.docker.internal
+  password: password
+  database_index: 0
+
+rate_limiting:
+  bucket_lock_expiration: 5 # in seconds
+  distributed_locks:
+    write: "write"
+    read: "read"
+    global: "global"

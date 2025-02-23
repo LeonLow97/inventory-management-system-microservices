@@ -7,11 +7,19 @@
 
 # API Gateway
 
-The API Gateway in the inventory management system microservices architecture routes incoming client requests to the appropriate backend microservices.
+In IMS, the API Gateway acts as a central entry point that manages secures, and routes requests between clients and different microservices within the IMS.
 
 ## Functions of the API Gateway
 
-|          Function of API Gateway          | Description                                                                                                      | Completed |
+|       Function       | Description                                                                                                                                                                   |
+| :------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   Request Routing    | Directs incoming requests (REST) to the appropriate microservice (gRPC) based on the request path, headers, or other criteria.                                                |
+|  Request Validation  | Ensures that path and query parameters, request bodies and headers required fields are present. Data types, value ranges and tokens are validated before forwarding requests. |
+| JWT Token Validation | Checks the validity of the JWT Token before forwarding to microservices.                                                                                                      |
+|  Service Discovery   | Using Hashicorp Consul to dynamically route requests to available instances of microservices by retrieving the host names.                                                    |
+|    Rate Limiting     | Using Token Bucket Algorithm to prevent abuse or excessive traffic to backend services.                                                                                       |
+
+<!-- |          Function of API Gateway          | Description                                                                                                      | Completed |
 | :---------------------------------------: | ---------------------------------------------------------------------------------------------------------------- | :-------: |
 |            Custom API Gateway             | A custom-built gateway that manages and routes traffic to various microservices                                  |    [x]    |
 |              IP Whitelisting              | Using `gin-gonic`'s `c.ClientIP()` to retrieve and restrict access based on IP addresses                         |    [x]    |
@@ -19,7 +27,7 @@ The API Gateway in the inventory management system microservices architecture ro
 |   gRPC Communication with Microservices   | For efficient, low-latency communication between services                                                        |    [x]    |
 |             Service Discovery             | Using `Hashicorp Consul` to dynamically route requests to available instances of microservices                   |    [X]    |
 |            Logging (ELK Stack)            | To capture, store and visualize logs for better debugging and monitoring                                         |    [ ]    |
-| Monitoring (Prometheus, Grafana, Datadog) | For tracking performance metrics, system health and alerts                                                       |    [ ]    |
+| Monitoring (Prometheus, Grafana, Datadog) | For tracking performance metrics, system health and alerts                                                       |    [ ]    | -->
 
 # Endpoints (HTTP - REST)
 

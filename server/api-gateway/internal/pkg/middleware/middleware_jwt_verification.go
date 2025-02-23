@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/LeonLow97/internal/pkg/apierror"
+	"github.com/LeonLow97/internal/pkg/contextstore"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -70,8 +72,24 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Convert issuer to string (if not already) and then to int
+		issuerStr, ok := issuer.(string)
+		if !ok {
+			log.Println("[JWT ERROR] 'iss' (issuer) is not a string")
+			apierror.ErrInternalServerError.APIError(c)
+			return
+		}
+
+		userID, err := strconv.Atoi(issuerStr)
+		if err != nil {
+			log.Println("[JWT ERROR] Failed to convert 'iss' to integer:", err)
+			apierror.ErrInternalServerError.APIError(c)
+			return
+		}
+
 		// Store the user ID in the request context for future use
-		c.Set("userID", issuer)
+		contextstore.InjectUserIDIntoContext(c, userID)
+
 		c.Next()
 	}
 }

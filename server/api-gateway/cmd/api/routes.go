@@ -8,8 +8,8 @@ import (
 )
 
 func (app *application) routes() *gin.Engine {
-	// Application Middlewares tto process requests
-	middleware := middleware.NewMiddleware(*app.Config)
+	// Application Middlewares to process requests
+	middleware := middleware.NewMiddleware(*app.Config, app.AppCache)
 
 	router := gin.Default()
 

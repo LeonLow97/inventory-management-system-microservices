@@ -27,20 +27,29 @@ type Config struct {
 	OrderService struct {
 		Name string `mapstructure:"name"`
 	} `mapstructure:"order_service"`
-	HashicorpConsulConfig HashicorpConsulConfig `mapstructure:"hashicorp_consul"`
-}
-
-type HashicorpConsulConfig struct {
-	ID      string `mapstructure:"id"`
-	Name    string `mapstructure:"name"`
-	Port    int    `mapstructure:"port"`
-	Address string `mapstructure:"address"`
+	HashicorpConsulConfig struct {
+		Port    int    `mapstructure:"port"`
+		Address string `mapstructure:"address"`
+	} `mapstructure:"hashicorp_consul"`
+	RedisServer struct {
+		Port          int    `mapstructure:"port"`
+		Address       string `mapstructure:"address"`
+		Password      string `mapstructure:"password"`
+		DatabaseIndex int    `mapstructure:"database_index"`
+	} `mapstructure:"redis_server"`
+	RateLimiting struct {
+		BucketLockExpiration int `mapstructure:"bucket_lock_expiration"`
+		DistributedLocks     struct {
+			Write  string `mapstructure:"write"`
+			Read   string `mapstructure:"read"`
+			Global string `mapstructure:"global"`
+		} `mapstructure:"distributed_locks"`
+	} `napstructure:"rate_limiting"`
 }
 
 const (
-	ModeDevelopment = "development"
-	ModeDocker      = "docker"
-	ModeStaging     = "staging" // local kubernetes
+	ModeDocker  = "docker"
+	ModeStaging = "staging" // local kubernetes
 )
 
 func LoadConfig() (*Config, error) {
@@ -51,7 +60,7 @@ func LoadConfig() (*Config, error) {
 
 	mode := vpr.GetString("MODE")
 	if len(mode) == 0 {
-		mode = ModeDevelopment
+		mode = ModeDocker
 	}
 	viper.SetConfigName(mode)
 
