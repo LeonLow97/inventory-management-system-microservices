@@ -18,9 +18,9 @@ func (m *Middleware) RateLimitingMiddleware() gin.HandlerFunc {
 		if err != nil {
 			switch {
 			case errors.Is(err, contextstore.ErrUserIDNotInContext):
-				apierror.ErrUnauthorized.APIError(c)
+				apierror.ErrUnauthorized.APIError(c, err)
 			default:
-				apierror.ErrInternalServerError.APIError(c)
+				apierror.ErrInternalServerError.APIError(c, err)
 			}
 			return
 		}
@@ -38,7 +38,7 @@ func (m *Middleware) RateLimitingMiddleware() gin.HandlerFunc {
 		// Try to acquire a lock before modifying the token count
 		if !m.appCache.AcquireLock(c, userID, bucketName) {
 			log.Println("could not acquire distributed lock, try again later") // TODO: remove log in future to avoid flooding logs
-			apierror.ErrTooManyRequests.APIError(c)
+			apierror.ErrTooManyRequests.APIError(c, nil)
 			return
 		}
 		defer m.appCache.ReleaseLock(c, userID, bucketName)
@@ -48,13 +48,14 @@ func (m *Middleware) RateLimitingMiddleware() gin.HandlerFunc {
 		currentTokens, err := m.appCache.RedisClient.Get(c, key).Int()
 		if err != nil && err != redis.Nil {
 			log.Println("failed to fetch token counts with error:", err)
-			apierror.ErrInternalServerError.APIError(c)
+			apierror.ErrInternalServerError.APIError(c, err)
 			return
 		}
 
 		// Check if there are available tokens
 		if currentTokens == 0 {
-			apierror.ErrTooManyRequests.APIError(c)
+			log.Println("No tokens available")
+			apierror.ErrTooManyRequests.APIError(c, nil)
 			return
 		}
 		if currentTokens > 0 {

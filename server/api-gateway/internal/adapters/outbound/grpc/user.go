@@ -30,10 +30,9 @@ func (r *UserRepo) GetUsers(ctx context.Context) (*[]domain.User, error) {
 		users[i] = domain.User{
 			FirstName: grpcUser.FirstName,
 			LastName:  grpcUser.LastName,
-			Username:  grpcUser.Username,
 			Email:     grpcUser.Email,
-			Active:    int(grpcUser.Active),
-			Admin:     int(grpcUser.Admin),
+			Active:    grpcUser.Active,
+			Admin:     grpcUser.Admin,
 		}
 	}
 
@@ -46,7 +45,6 @@ func (r *UserRepo) UpdateUser(ctx context.Context, req domain.User, userID int) 
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Password:  req.Password,
-		Email:     req.Email,
 	}
 
 	_, err := r.conn.UpdateUser(ctx, grpcReq)

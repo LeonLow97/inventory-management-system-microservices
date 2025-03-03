@@ -15,9 +15,15 @@ type Config struct {
 		URL  string `mapstructure:"url"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"server"`
-	JWT struct {
-		Secret string `mapstructure:"secret"`
-	} `mapstructure:"jwt"`
+	AuthJWTToken struct {
+		Name     string `mapstructure:"name"`
+		Secret   string `mapstructure:"secret"`
+		MaxAge   int    `mapstructure:"max_age"`
+		Domain   string `mapstructure:"domain"`
+		Secure   bool   `mapstructure:"secure"`
+		HTTPOnly bool   `mapstructure:"http_only"`
+		Path     string `mapstructure:"path"`
+	} `mapstructure:"auth_jwt_token"`
 	AuthService struct {
 		Name string `mapstructure:"name"`
 	} `mapstructure:"auth_service"`
@@ -44,7 +50,7 @@ type Config struct {
 			Read   string `mapstructure:"read"`
 			Global string `mapstructure:"global"`
 		} `mapstructure:"distributed_locks"`
-	} `napstructure:"rate_limiting"`
+	} `mapstructure:"rate_limiting"`
 }
 
 const (

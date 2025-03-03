@@ -5,31 +5,30 @@ import (
 	"log"
 
 	"github.com/LeonLow97/internal/core/domain"
-	"github.com/LeonLow97/internal/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s service) UpdateUser(ctx context.Context, user *domain.User) error {
-	user, err := s.repo.GetUserByID(ctx, user.ID)
-	if err != nil {
-		log.Printf("failed to retrieve user by id '%d' with error: %v\n", user.ID, err)
-		return err
-	}
-
-	// check if password is valid (when provided)
-	if len(user.Password) > 0 && !utils.IsValidPassword(user.Password) {
-		return ErrInvalidPasswordFormat
-	} else {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+func (s service) UpdateUser(ctx context.Context, userID int64, updateUserInput domain.UpdateUserInput) error {
+	var hashedPassword *string
+	if updateUserInput.Password != nil {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*updateUserInput.Password), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("failed to generate updated password for user id '%d' with error: %v\n", user.ID, err)
+			log.Printf("failed to generate updated password for user id '%d' with error: %v\n", userID, err)
 			return err
 		}
-		user.Password = string(hashedPassword)
+		hashedStr := string(hashed)
+		hashedPassword = &hashedStr
 	}
 
-	if err := s.repo.UpdateUserByID(ctx, user); err != nil {
-		log.Printf("failed to update user by id '%d' with error: %v\n", user.ID, err)
+	updateUser := &domain.User{
+		ID:             userID,
+		HashedPassword: hashedPassword,
+		FirstName:      updateUserInput.FirstName,
+		LastName:       updateUserInput.LastName,
+	}
+
+	if err := s.repo.UpdateUserByID(ctx, updateUser); err != nil {
+		log.Printf("failed to update user by id '%d' with error: %v\n", userID, err)
 		return err
 	}
 

@@ -5,15 +5,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/LeonLow97/internal/core/domain"
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func GenerateJWTToken(user *domain.User, tokenExpiry time.Duration, secretKey string) (string, error) {
+func GenerateJWTToken(userID int64, tokenExpiry time.Duration, secretKey string) (string, error) {
 	// generate token with claims
 	tokenExpireTime := time.Now().Add(tokenExpiry)
 	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer:    fmt.Sprintf("%d", user.ID),
+		Issuer:    fmt.Sprintf("%d", userID),
 		ExpiresAt: jwt.NewNumericDate(tokenExpireTime), // 1 hour
 	})
 

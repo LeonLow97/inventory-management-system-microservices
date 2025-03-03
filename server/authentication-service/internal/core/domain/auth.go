@@ -1,14 +1,13 @@
 package domain
 
 type LoginInput struct {
-	Username string
+	Email    string
 	Password string
 }
 
 type SignUpInput struct {
+	Email     string
+	Password  string
 	FirstName string
 	LastName  string
-	Username  string
-	Password  string
-	Email     string
 }

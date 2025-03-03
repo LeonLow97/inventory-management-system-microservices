@@ -12,15 +12,15 @@ import (
 
 // Login performs authentication with bcrypt comparison of hashed password and provided password
 func (s service) Login(ctx context.Context, loginInput domain.LoginInput) (*domain.User, string, error) {
-	// Retrieve user details by username
-	user, err := s.repo.GetUserByUsername(ctx, loginInput.Username)
+	// Retrieve user details by email
+	user, err := s.repo.GetUserByEmail(ctx, loginInput.Email)
 	if err != nil {
-		log.Printf("failed to retrieve user by username '%s' during login with error: %v\n", loginInput.Username, err)
+		log.Printf("failed to retrieve user by email '%s' during login with error: %v\n", loginInput.Email, err)
 		return nil, "", err
 	}
 
 	// Compare hashed password with user supplied plain text password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginInput.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.HashedPassword), []byte(loginInput.Password)); err != nil {
 		switch {
 		case err == bcrypt.ErrMismatchedHashAndPassword,
 			err == bcrypt.ErrHashTooShort:
@@ -32,14 +32,14 @@ func (s service) Login(ctx context.Context, loginInput domain.LoginInput) (*doma
 		}
 	}
 
-	// Check if user is inactive
-	if user.Active == 0 {
+	// If user is inactive, block login operation
+	if !user.Active {
 		log.Printf("user id '%d' is inactive\n", user.ID)
 		return nil, "", ErrInactiveUser
 	}
 
 	// Generate JWT token for user
-	token, err := utils.GenerateJWTToken(user, time.Duration(s.cfg.JWTConfig.Expiry)*time.Minute, s.cfg.JWTConfig.SecretKey)
+	token, err := utils.GenerateJWTToken(user.ID, time.Duration(s.cfg.JWTConfig.Expiry)*time.Minute, s.cfg.JWTConfig.SecretKey)
 	if err != nil {
 		log.Printf("failed to generate JWT token for user id '%d'\n", user.ID)
 		return nil, "", err
@@ -49,40 +49,29 @@ func (s service) Login(ctx context.Context, loginInput domain.LoginInput) (*doma
 }
 
 func (s service) SignUp(ctx context.Context, signupInput domain.SignUpInput) error {
-	// TODO: Shift this to the API Gateway to perform validation
-	if !utils.IsValidPassword(signupInput.Email) {
-		log.Printf("invalid email format '%s'\n", signupInput.Email)
-		return ErrInvalidEmailFormat
-	}
-	// TODO: Shift this to the API Gateway to perform validation
-	if !utils.IsValidPassword(signupInput.Password) {
-		log.Println("invalid password format")
-		return ErrInvalidPasswordFormat
-	}
-
-	taken, err := s.repo.IsUsernameTaken(ctx, signupInput.Username)
+	emailExists, err := s.repo.EmailExists(ctx, signupInput.Email)
 	if err != nil {
-		log.Printf("failed to check if username has been taken for username '%s' with error: %v\n", signupInput.Username, err)
+		log.Printf("failed to check if email has been taken for email '%s' with error: %v\n", signupInput.Email, err)
 		return err
 	}
-	if taken {
-		return ErrUsernameTaken
+	if emailExists {
+		return ErrEmailAlreadyExists
 	}
 
-	// bcrypt hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(signupInput.Password), 10)
+	// Generate hashed password from plain text password via bcrypt
+	hashed, err := bcrypt.GenerateFromPassword([]byte(signupInput.Password), 10)
 	if err != nil {
-		log.Printf("failed to hash password for username '%s' with error: %v\n", signupInput.Username, err)
+		log.Printf("failed to hash password for email '%s' with error: %v\n", signupInput.Email, err)
 		return err
 	}
+	hashedStr := string(hashed)
+	hashedPassword := &hashedStr
 
-	// create user
 	user := &domain.User{
-		FirstName: signupInput.FirstName,
-		LastName:  signupInput.LastName,
-		Username:  signupInput.Username,
-		Password:  string(hashedPassword),
-		Email:     signupInput.Email,
+		Email:          signupInput.Email,
+		HashedPassword: hashedPassword,
+		FirstName:      &signupInput.FirstName,
+		LastName:       &signupInput.LastName,
 	}
 	if err := s.repo.InsertUser(ctx, user); err != nil {
 		log.Printf("failed to insert user during signup with error: %v\n", err)

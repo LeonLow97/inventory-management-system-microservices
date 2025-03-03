@@ -1,4 +1,4 @@
-package main
+package middleware
 
 import (
 	"net"
@@ -14,7 +14,7 @@ var allowedIPs = []string{
 }
 
 // ipWhitelistMiddleware check the client's IP against a list of allowed IP addresses (whitelist)
-func (app *application) ipWhitelistMiddleware() gin.HandlerFunc {
+func (m *Middleware) IPWhitelistingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Allow requests to the /healthcheck endpoint regardless of IP for k8s probing
 		if c.Request.URL.Path == "/healthcheck" {

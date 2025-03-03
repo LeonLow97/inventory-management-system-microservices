@@ -10,10 +10,20 @@ import (
 )
 
 var (
+	// Authentication Microservice errors
+	ErrEmailAlreadyExists = &CustomError{
+		Code:    "409001",
+		Message: "Email already exists",
+	}
+
 	// Generic errors
 	ErrUnauthorized = &CustomError{
 		Code:    "401000",
 		Message: "Unauthorized",
+	}
+	ErrBadRequest = &CustomError{
+		Code:    "400000",
+		Message: "Bad Request",
 	}
 	ErrTooManyRequests = &CustomError{
 		Code:    "429000",
@@ -57,6 +67,8 @@ func (e *CustomError) getHTTPStatus() (int, string) {
 		return http.StatusNotFound, "Not Found"
 	case http.StatusTooManyRequests:
 		return http.StatusTooManyRequests, "Too Many Requests"
+	case http.StatusConflict:
+		return http.StatusConflict, "Conflict"
 	case http.StatusInternalServerError:
 		return http.StatusInternalServerError, "Internal Server Error"
 	default:
@@ -66,8 +78,12 @@ func (e *CustomError) getHTTPStatus() (int, string) {
 }
 
 // APIError logs the original error and returns a JSON response
-func (e *CustomError) APIError(c *gin.Context) {
-	log.Printf("HTTP Error: %s", e.Message)
+func (e *CustomError) APIError(c *gin.Context, err error) {
+	if err != nil {
+		log.Printf("HTTP Error: %s | Details: %v", e.Message, err)
+	} else {
+		log.Printf("HTTP Error: %s", e.Message)
+	}
 
 	httpStatus, genericMessage := e.getHTTPStatus()
 	c.AbortWithStatusJSON(httpStatus, gin.H{"message": genericMessage})

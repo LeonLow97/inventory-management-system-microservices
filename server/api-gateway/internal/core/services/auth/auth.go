@@ -26,18 +26,16 @@ func NewAuthService(r ports.AuthRepo) Auth {
 func (s *service) Login(ctx context.Context, req domain.User) (*domain.User, error) {
 	user, err := s.authRepo.Login(ctx, req)
 	if err != nil {
-		log.Printf("Login failed for Username=%s: %v", req.Username, err)
+		log.Printf("failed to login for email %s with error: %v\n", req.Email, err)
 		return nil, err
 	}
-
 	return user, nil
 }
 
 func (s *service) SignUp(ctx context.Context, req domain.User) error {
 	if err := s.authRepo.SignUp(ctx, req); err != nil {
-		log.Printf("SignUp failed for Username=%s: %v", req.Username, err)
+		log.Printf("failed to sign up for email %s with error: %v\n", req.Email, err)
 		return err
 	}
-
 	return nil
 }

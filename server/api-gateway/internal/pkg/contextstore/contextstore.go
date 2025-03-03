@@ -1,6 +1,9 @@
 package contextstore
 
-import "context"
+import (
+	"context"
+	"log"
+)
 
 type contextKeyInt int
 
@@ -13,8 +16,10 @@ func InjectUserIDIntoContext(ctx context.Context, userID int) context.Context {
 }
 
 func UserIDFromContext(ctx context.Context) (int, error) {
-	if v, ok := ctx.Value(contextKeyUserID).(int); ok {
-		return v, nil
+	v, found := ctx.Value(contextKeyUserID).(int)
+	if !found {
+		log.Println("User ID not found in context")
+		return 0, ErrUserIDNotInContext
 	}
-	return 0, ErrUserIDNotInContext
+	return v, nil
 }

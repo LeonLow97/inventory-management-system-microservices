@@ -21,7 +21,7 @@ func NewAuthRepo(conn *grpc.ClientConn) ports.AuthRepo {
 
 func (r *AuthRepo) Login(ctx context.Context, req domain.User) (*domain.User, error) {
 	grpcReq := &pb.LoginRequest{
-		Username: req.Username,
+		Email:    req.Email,
 		Password: req.Password,
 	}
 
@@ -33,10 +33,9 @@ func (r *AuthRepo) Login(ctx context.Context, req domain.User) (*domain.User, er
 	user := &domain.User{
 		FirstName: grpcResp.FirstName,
 		LastName:  grpcResp.LastName,
-		Username:  grpcResp.Username,
 		Email:     grpcResp.Email,
-		Active:    int(grpcResp.Active),
-		Admin:     int(grpcResp.Admin),
+		Active:    grpcResp.Active,
+		Admin:     grpcResp.Admin,
 		Token:     grpcResp.Token,
 	}
 
@@ -45,11 +44,10 @@ func (r *AuthRepo) Login(ctx context.Context, req domain.User) (*domain.User, er
 
 func (r *AuthRepo) SignUp(ctx context.Context, req domain.User) error {
 	grpcReq := &pb.SignUpRequest{
+		Email:     req.Email,
+		Password:  req.Password,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
-		Username:  req.Username,
-		Password:  req.Password,
-		Email:     req.Email,
 	}
 
 	_, err := r.conn.SignUp(ctx, grpcReq)

@@ -7,10 +7,9 @@ import (
 )
 
 type Repository interface {
-	GetUserByUsername(ctx context.Context, username string) (*domain.User, error)
-	GetUserByID(ctx context.Context, userID int) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUsers() (*[]domain.User, error)
-	IsUsernameTaken(ctx context.Context, username string) (bool, error)
+	EmailExists(ctx context.Context, email string) (bool, error)
 
 	InsertUser(ctx context.Context, user *domain.User) error
 	UpdateUserByID(ctx context.Context, user *domain.User) error

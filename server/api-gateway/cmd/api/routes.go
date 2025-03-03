@@ -8,29 +8,26 @@ import (
 )
 
 func (app *application) routes() *gin.Engine {
-	// Application Middlewares to process requests
+	// Application Middlewares to process incoming requests
 	middleware := middleware.NewMiddleware(*app.Config, app.AppCache)
 
 	router := gin.Default()
-
-	router.Use(app.ipWhitelistMiddleware())
-	router.Use(middleware.RateLimitingMiddleware())
+	// router.Use(middleware.IPWhitelistingMiddleware())
+	// router.Use(middleware.RateLimitingMiddleware())
 
 	// for checking if api gateway service is healthy and running
 	router.GET("/healthcheck", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "api gateway healthy and running!"})
 	})
 
-	// authentication microservice endpoints
+	// Authentication Microservice Endpoints
 	router.POST("/login", app.AuthHandler.Login())
 	router.POST("/signup", app.AuthHandler.SignUp())
 	router.POST("/logout", app.AuthHandler.Logout())
-
-	// authentication (user) microservice endpoints
 	router.GET("/users", middleware.JWTAuthMiddleware(), app.UserHandler.GetUsers())
 	router.PATCH("/user", middleware.JWTAuthMiddleware(), app.UserHandler.UpdateUser())
 
-	// inventory microservice endpoints
+	// Inventory Microservice Endpoints
 	inventoryServiceRouter := router.Group("/inventory")
 	inventoryServiceRouter.Use(middleware.JWTAuthMiddleware())
 
@@ -40,7 +37,7 @@ func (app *application) routes() *gin.Engine {
 	inventoryServiceRouter.PATCH("/product/:id", app.InventoryHandler.UpdateProduct())
 	inventoryServiceRouter.DELETE("/product/:id", app.InventoryHandler.DeleteProduct())
 
-	// order microservice
+	// Order Microservice Endpoints
 	orderServiceRouter := router.Group("")
 	orderServiceRouter.Use(middleware.JWTAuthMiddleware())
 

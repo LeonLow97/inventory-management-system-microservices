@@ -20,7 +20,7 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			log.Println("[AUTH ERROR] Missing Authorization header in request")
-			apierror.ErrUnauthorized.APIError(c)
+			apierror.ErrUnauthorized.APIError(c, nil)
 			return
 		}
 
@@ -28,13 +28,13 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		headerParts := strings.Split(authHeader, " ")
 		if len(headerParts) != 2 {
 			log.Println("[AUTH ERROR] Invalid Authorization header format. Expected 'Bearer <token>'")
-			apierror.ErrUnauthorized.APIError(c)
+			apierror.ErrUnauthorized.APIError(c, nil)
 			return
 		}
 
 		if headerParts[0] != "Bearer" {
 			log.Println("[AUTH ERROR] Missing 'Bearer' prefix in Authorization header")
-			apierror.ErrUnauthorized.APIError(c)
+			apierror.ErrUnauthorized.APIError(c, nil)
 			return
 		}
 
@@ -46,13 +46,13 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 				log.Println("[JWT ERROR] Unexpected signing method")
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return []byte(m.cfg.JWT.Secret), nil
+			return []byte(m.cfg.AuthJWTToken.Secret), nil
 		})
 
 		// Handle token validation failure
 		if err != nil || !token.Valid {
 			log.Printf("[AUTH ERROR] Invalid or expired token: %v\n", err)
-			apierror.ErrUnauthorized.APIError(c)
+			apierror.ErrUnauthorized.APIError(c, nil)
 			return
 		}
 
@@ -60,7 +60,7 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			log.Println("[JWT ERROR] Failed to parse token claims")
-			apierror.ErrInternalServerError.APIError(c)
+			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 
@@ -68,7 +68,7 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		issuer, ok := claims["iss"]
 		if !ok {
 			log.Println("[JWT ERROR] Missing 'iss' (issuer) field in token claims")
-			apierror.ErrInternalServerError.APIError(c)
+			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 
@@ -76,14 +76,14 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		issuerStr, ok := issuer.(string)
 		if !ok {
 			log.Println("[JWT ERROR] 'iss' (issuer) is not a string")
-			apierror.ErrInternalServerError.APIError(c)
+			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 
 		userID, err := strconv.Atoi(issuerStr)
 		if err != nil {
 			log.Println("[JWT ERROR] Failed to convert 'iss' to integer:", err)
-			apierror.ErrInternalServerError.APIError(c)
+			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 

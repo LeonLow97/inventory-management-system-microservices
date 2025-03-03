@@ -9,10 +9,10 @@ import (
 
 // Predefined Errors
 var (
-	ECInvalidCredentials = &CustomError{codes.Unauthenticated, "Invalid Credentials"}
-	ECInactiveUser       = &CustomError{codes.Unauthenticated, "Inactive User"}
-	ECUsernameTaken      = &CustomError{codes.AlreadyExists, "Username Taken"}
+	ECEmailAlreadyExists = &CustomError{codes.AlreadyExists, "Email already exists"}
 
+	// Generic Errors
+	ECUnauthorized        = &CustomError{codes.Unauthenticated, "Unauthenticated"}
 	ECInternalServerError = &CustomError{codes.Internal, "Internal Server Error"}
 )
 

@@ -12,7 +12,7 @@ type Service interface {
 	Login(ctx context.Context, loginInput domain.LoginInput) (*domain.User, string, error)
 	SignUp(ctx context.Context, signupInput domain.SignUpInput) error
 
-	UpdateUser(ctx context.Context, user *domain.User) error
+	UpdateUser(ctx context.Context, userID int64, updateUserInput domain.UpdateUserInput) error
 	GetUsers(ctx context.Context) (*[]domain.User, error)
 }
 

@@ -59,7 +59,7 @@ func main() {
 	// instantiating auth microservice
 	authRepo := grpcclient.NewAuthRepo(grpcClient.AuthenticationClient())
 	authService := auth.NewAuthService(authRepo)
-	authHandler := web.NewAuthHandler(authService)
+	authHandler := web.NewAuthHandler(*cfg, authService)
 
 	// instantiating user microservice
 	userRepo := grpcclient.NewUserRepo(grpcClient.AuthenticationClient())

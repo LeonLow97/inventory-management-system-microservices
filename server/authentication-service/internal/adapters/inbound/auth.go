@@ -7,8 +7,6 @@ import (
 	"github.com/LeonLow97/internal/core/services"
 	"github.com/LeonLow97/internal/pkg/grpcerror"
 	pb "github.com/LeonLow97/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type authInbound struct {
@@ -28,20 +26,20 @@ func (s *authInbound) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidCredentials) ||
-			errors.Is(err, services.ErrInactiveUser):
-			return nil, grpcerror.ECInactiveUser.GRPCError(err)
+			errors.Is(err, services.ErrInactiveUser) ||
+			errors.Is(err, services.ErrUserNotFound):
+			return nil, grpcerror.ECUnauthorized.GRPCError(err)
 		default:
 			return nil, grpcerror.ECInternalServerError.GRPCError(err)
 		}
 	}
 
 	return &pb.LoginResponse{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Username:  user.Username,
+		FirstName: *user.FirstName,
+		LastName:  *user.LastName,
 		Email:     user.Email,
-		Active:    int32(user.Active),
-		Admin:     int32(user.Admin),
+		Active:    user.Active,
+		Admin:     user.Admin,
 		Token:     token,
 	}, nil
 }
@@ -50,17 +48,14 @@ func (s *authInbound) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.Si
 	signupInput := ToSignUpInput(req)
 	if err := s.service.SignUp(ctx, signupInput); err != nil {
 		switch {
-		case errors.Is(err, services.ErrInvalidEmailFormat),
-			errors.Is(err, services.ErrInvalidPasswordFormat):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, services.ErrUsernameTaken):
-			return nil, grpcerror.ECUsernameTaken.GRPCError(err)
+		case errors.Is(err, services.ErrEmailAlreadyExists):
+			return nil, grpcerror.ECEmailAlreadyExists.GRPCError(err)
 		default:
 			return nil, grpcerror.ECInternalServerError.GRPCError(err)
 		}
 	}
 
 	return &pb.SignUpResponse{
-		Username: req.Username,
+		Email: req.Email,
 	}, nil
 }
