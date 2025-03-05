@@ -1,41 +1,42 @@
 package middleware
 
 import (
+	"log"
 	"net"
-	"net/http"
 
+	"github.com/LeonLow97/internal/pkg/apierror"
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Store this in database
-var allowedIPs = []string{
-	"127.0.0.1",
-	"192.168.65.1",
+var adminPaths = map[string]struct{}{
+	"/users": {},
 }
 
 // ipWhitelistMiddleware check the client's IP against a list of allowed IP addresses (whitelist)
 func (m *Middleware) IPWhitelistingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Allow requests to the /healthcheck endpoint regardless of IP for k8s probing
-		if c.Request.URL.Path == "/healthcheck" {
+		// Perform IP whitelisting check for admin endpoints
+		if _, isAdminPath := adminPaths[c.Request.URL.Path]; !isAdminPath {
 			c.Next()
 			return
 		}
 
 		clientIP := c.ClientIP()
-		if !isAllowedIP(clientIP) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+		if !isAllowedIP(clientIP, m.cfg.AdminWhitelistedIPs) {
+			log.Printf("admin IP %s is not whitelisted\n", clientIP)
+			apierror.ErrForbidden.APIError(c, nil)
 			return
 		}
+
 		c.Next()
 	}
 }
 
-func isAllowedIP(ip string) bool {
+func isAllowedIP(ip string, adminWhitelistedIPs []string) bool {
 	allowed := false
 	clientIP := net.ParseIP(ip)
 
-	for _, allowedIP := range allowedIPs {
+	for _, allowedIP := range adminWhitelistedIPs {
 		if clientIP.Equal(net.ParseIP(allowedIP)) {
 			allowed = true
 			break

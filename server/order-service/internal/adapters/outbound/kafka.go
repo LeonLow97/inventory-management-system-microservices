@@ -39,7 +39,7 @@ func (r *Repository) ProduceOrderMessage(brokerAddress, topic string, orderID in
 
 func (r *Repository) ConsumeOrderStatus(brokerAddress, topic string) {
 	var (
-		messageChan = make(chan interface{})
+		messageChan = make(chan any)
 		errorChan   = make(chan error)
 	)
 

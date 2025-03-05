@@ -9,13 +9,27 @@ import (
 	"github.com/LeonLow97/internal/pkg/contextstore"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"google.golang.org/grpc/metadata"
 )
+
+var skipPaths = map[string]struct{}{
+	"/healthcheck": {},
+	"/login":       {},
+	"/signup":      {},
+	"/logout":      {},
+}
 
 // JWTAuthMiddleware ensures that incoming requests have a valid JWT Token
 // It extracts the token from the Authorization header, verifies its format,
 // and validates the token's authenticity
 func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip request path for this middleware
+		if _, skipRequest := skipPaths[c.Request.URL.Path]; skipRequest {
+			c.Next()
+			return
+		}
+
 		// Retrieve the Authorization header from the request
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -73,22 +87,33 @@ func (m *Middleware) JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Convert issuer to string (if not already) and then to int
-		issuerStr, ok := issuer.(string)
+		userIDStr, ok := issuer.(string)
 		if !ok {
 			log.Println("[JWT ERROR] 'iss' (issuer) is not a string")
 			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 
-		userID, err := strconv.Atoi(issuerStr)
+		userID, err := strconv.Atoi(userIDStr)
 		if err != nil {
 			log.Println("[JWT ERROR] Failed to convert 'iss' to integer:", err)
 			apierror.ErrInternalServerError.APIError(c, nil)
 			return
 		}
 
-		// Store the user ID in the request context for future use
-		contextstore.InjectUserIDIntoContext(c, userID)
+		if userID <= 0 {
+			log.Printf("User ID %d is invalid", userID)
+			apierror.ErrUnauthorized.APIError(c, nil)
+			return
+		}
+
+		// gRPC metadata for outgoing gRPC calls
+		md := metadata.New(map[string]string{
+			"user_id": userIDStr,
+		})
+
+		// Store the metadata in Gin context
+		contextstore.InjectGRPCMetadataIntoContext(c, md)
 
 		c.Next()
 	}

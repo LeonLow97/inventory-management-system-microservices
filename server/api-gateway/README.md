@@ -11,13 +11,13 @@ In IMS, the API Gateway acts as a central entry point that manages secures, and 
 
 ## Functions of the API Gateway
 
-|       Function       | Description                                                                                                                                                                   |
-| :------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   Request Routing    | Directs incoming requests (REST) to the appropriate microservice (gRPC) based on the request path, headers, or other criteria.                                                |
-|  Request Validation  | Ensures that path and query parameters, request bodies and headers required fields are present. Data types, value ranges and tokens are validated before forwarding requests. |
-| JWT Token Validation | Checks the validity of the JWT Token before forwarding to microservices.                                                                                                      |
-|  Service Discovery   | Using Hashicorp Consul to dynamically route requests to available instances of microservices by retrieving the host names.                                                    |
-|    Rate Limiting     | Using Token Bucket Algorithm to prevent abuse or excessive traffic to backend services.                                                                                       |
+|       Function       | Description                                                                                                                                                                                                                                                                                                      |
+| :------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   Request Routing    | Directs incoming requests (REST) to the appropriate microservice (gRPC) based on the request path, headers, or other criteria.                                                                                                                                                                                   |
+|  Request Validation  | Ensures that path and query parameters, request bodies and headers required fields are present. Data types, value ranges and tokens are validated before forwarding requests. Using `github.com/go-playground/validator/v10` to define custom validation rules and perform validation on incoming JSON requests. |
+| JWT Token Validation | Checks the validity of the JWT Token before forwarding to microservices.                                                                                                                                                                                                                                         |
+|  Service Discovery   | Using Hashicorp Consul to dynamically route requests to available instances of microservices by retrieving the host names.                                                                                                                                                                                       |
+|    Rate Limiting     | Using Token Bucket Algorithm to prevent abuse or excessive traffic to backend services.                                                                                                                                                                                                                          |
 
 <!-- |          Function of API Gateway          | Description                                                                                                      | Completed |
 | :---------------------------------------: | ---------------------------------------------------------------------------------------------------------------- | :-------: |
@@ -31,22 +31,22 @@ In IMS, the API Gateway acts as a central entry point that manages secures, and 
 
 # Endpoints (HTTP - REST)
 
-| Endpoint                 | Microservice           | Description                                             |
-| ------------------------ | ---------------------- | ------------------------------------------------------- |
-| `/`                      | API Gateway            | Health check endpoint to verify the gateway is running. |
-| `/login`                 | Authentication Service | Endpoint to authenticate users (login).                 |
-| `/signup`                | Authentication Service | Endpoint for user registration (signup).                |
-| `/logout`                | Authentication Service | Endpoint to log out users.                              |
-| `/users`                 | Authentication Service | Endpoint to retrieve all Authentications.               |
-| `/user`                  | Authentication Service | Endpoint to update user information.                    |
-| `/inventory/products`    | Inventory Service      | Endpoint to retrieve all products.                      |
-| `/inventory/product/:id` | Inventory Service      | Endpoint to retrieve a product by ID.                   |
-| `/inventory/product`     | Inventory Service      | Endpoint to create a new product.                       |
-| `/inventory/product/:id` | Inventory Service      | Endpoint to update a product by ID.                     |
-| `/inventory/product/:id` | Inventory Service      | Endpoint to delete a product by ID.                     |
-| `/orders`                | Order Service          | Endpoint to retrieve all orders.                        |
-| `/order/:id`             | Order Service          | Endpoint to retrieve an order by ID.                    |
-| `/order`                 | Order Service          | Endpoint to create a new order.                         |
+| Method   | Endpoint                 | Microservice           | Description                                             |
+| -------- | ------------------------ | ---------------------- | ------------------------------------------------------- |
+| `GET`    | `/healthcheck`           | API Gateway            | Health check endpoint to verify the gateway is running. |
+| `POST`   | `/login`                 | Authentication Service | Endpoint to authenticate users (login).                 |
+| `POST`   | `/signup`                | Authentication Service | Endpoint for user registration (signup).                |
+| `POST`   | `/logout`                | Authentication Service | Endpoint to log out users.                              |
+| `GET`    | `/users`                 | Authentication Service | Endpoint to retrieve all users.                         |
+| `PATCH`  | `/user`                  | Authentication Service | Endpoint to update user information.                    |
+| `GET`    | `/inventory/products`    | Inventory Service      | Endpoint to retrieve all products.                      |
+| `GET`    | `/inventory/product/:id` | Inventory Service      | Endpoint to retrieve a product by ID.                   |
+| `POST`   | `/inventory/product`     | Inventory Service      | Endpoint to create a new product.                       |
+| `PATCH`  | `/inventory/product/:id` | Inventory Service      | Endpoint to update a product by ID.                     |
+| `DELETE` | `/inventory/product/:id` | Inventory Service      | Endpoint to delete a product by ID.                     |
+| `GET`    | `/orders`                | Order Service          | Endpoint to retrieve all orders.                        |
+| `GET`    | `/order/:id`             | Order Service          | Endpoint to retrieve an order by ID.                    |
+| `POST`   | `/order`                 | Order Service          | Endpoint to create a new order.                         |
 
 ## Hexagonal Architecture with Domain Driven Design
 

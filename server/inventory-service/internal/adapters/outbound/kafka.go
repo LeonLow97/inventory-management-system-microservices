@@ -2,7 +2,7 @@ package outbound
 
 import "github.com/segmentio/kafka-go"
 
-func (r *repository) ConsumeOrderMessage(brokerAddress, topic string, messageChan chan interface{}, errorChan chan error) {
+func (r *repository) ConsumeOrderMessage(brokerAddress, topic string, messageChan chan any, errorChan chan error) {
 	go r.segmentioInstance.Consumer(brokerAddress, topic, messageChan, errorChan)
 }
 

@@ -38,3 +38,8 @@ rate_limiting:
     write: "write"
     read: "read"
     global: "global"
+
+admin_whitelisted_ips:
+  - "127.0.0.1"
+  - "10.0.0.1"
+  - "192.168.65.1"

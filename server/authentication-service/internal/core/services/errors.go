@@ -8,6 +8,5 @@ var (
 	ErrEmailAlreadyExists = errors.New("email already exists")
 	ErrUserNotFound       = errors.New("user not found")
 
-	ErrInvalidEmailFormat    = errors.New("invalid email format")
-	ErrInvalidPasswordFormat = errors.New("invalid password format")
+	ErrUnauthorizedAdminAccess = errors.New("admin user not found")
 )

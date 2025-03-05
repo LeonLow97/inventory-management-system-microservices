@@ -39,3 +39,7 @@ type UpdateUserInput struct {
 	LastName  *string
 	Password  *string
 }
+
+type UserCursor struct {
+	ID int64 `json:"id"`
+}

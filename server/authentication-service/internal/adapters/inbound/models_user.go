@@ -6,6 +6,17 @@ import (
 	pb "github.com/LeonLow97/proto"
 )
 
+func SanitizeGetUsersRequest(req *pb.GetUsersRequest) {
+	// Minimum limit
+	if req.Limit < 10 {
+		req.Limit = 10
+	}
+	// Maximum Limit
+	if req.Limit > 50 {
+		req.Limit = 50
+	}
+}
+
 func ToUpdateUserInput(req *pb.UpdateUserRequest) domain.UpdateUserInput {
 	return domain.UpdateUserInput{
 		FirstName: utils.SanitizePointer(&req.FirstName),

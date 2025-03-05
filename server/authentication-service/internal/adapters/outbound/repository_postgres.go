@@ -50,26 +50,20 @@ func (r *Repository) EmailExists(ctx context.Context, email string) (bool, error
 	return exists, nil
 }
 
-// TODO: Convert this to cursor pagination
-func (r *Repository) GetUsers() (*[]domain.User, error) {
-	// Return an empty slice and no error
-	return &[]domain.User{}, nil
-}
-
 func (r *Repository) InsertUser(ctx context.Context, user *domain.User) error {
 	query := `
 		INSERT INTO users (email, hashed_password, first_name, last_name)
 		VALUES (?, ?, ?, ?)
     `
 
-	args := []interface{}{user.Email, user.HashedPassword, user.FirstName, user.LastName}
+	args := []any{user.Email, user.HashedPassword, user.FirstName, user.LastName}
 	_, err := r.db.ExecContext(ctx, r.db.Rebind(query), args...)
 	return err
 }
 
 func (r *Repository) UpdateUserByID(ctx context.Context, user *domain.User) error {
 	var setClauses []string
-	var args []interface{}
+	var args []any
 
 	// Dynamically add fields to update only if they are provided
 	if user.FirstName != nil && *user.FirstName != "" {
@@ -81,7 +75,7 @@ func (r *Repository) UpdateUserByID(ctx context.Context, user *domain.User) erro
 		args = append(args, *user.LastName)
 	}
 	if user.HashedPassword != nil && *user.HashedPassword != "" {
-		setClauses = append(setClauses, "password = ?")
+		setClauses = append(setClauses, "hashed_password = ?")
 		args = append(args, *user.HashedPassword)
 	}
 
@@ -100,4 +94,46 @@ func (r *Repository) UpdateUserByID(ctx context.Context, user *domain.User) erro
 	args = append(args, user.ID)
 	_, err := r.db.ExecContext(ctx, r.db.Rebind(query), args...)
 	return err
+}
+
+// Performs cursor pagination to retrieve users, cursor is user_id
+func (r *Repository) GetUsers(ctx context.Context, limit int64, userCursor domain.UserCursor) ([]domain.User, error) {
+	var args []any
+	var whereClause string
+
+	if userCursor.ID != 0 {
+		whereClause = "WHERE id < ?"
+		args = append(args, userCursor.ID)
+	}
+	args = append(args, limit)
+
+	query := fmt.Sprintf(`
+		SELECT
+			id, email, first_name, last_name, active, updated_at, created_at
+		FROM users
+		%s
+		ORDER BY id DESC
+		LIMIT ?
+	`, whereClause)
+
+	var users []domain.User
+	if err := r.db.SelectContext(ctx, &users, r.db.Rebind(query), args...); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (r *Repository) IsAdminUser(ctx context.Context, adminUserID int64) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM admin_users WHERE active AND user_id = $1
+		)
+	`
+
+	var isAdminUser bool
+	if err := r.db.GetContext(ctx, &isAdminUser, query, adminUserID); err != nil {
+		return false, err
+	}
+	return isAdminUser, nil
 }

@@ -13,7 +13,7 @@ func GenerateJWTToken(userID int64, tokenExpiry time.Duration, secretKey string)
 	tokenExpireTime := time.Now().Add(tokenExpiry)
 	generateToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Issuer:    fmt.Sprintf("%d", userID),
-		ExpiresAt: jwt.NewNumericDate(tokenExpireTime), // 1 hour
+		ExpiresAt: jwt.NewNumericDate(tokenExpireTime),
 	})
 
 	signedToken, err := generateToken.SignedString([]byte(secretKey))

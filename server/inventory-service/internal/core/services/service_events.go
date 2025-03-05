@@ -25,7 +25,7 @@ func NewServiceEvents(repo ports.Repository) ServiceEvents {
 }
 
 func (s *serviceEvents) ConsumeUpdateInventoryEvent(brokerAddress, consumeTopic, produceTopic string) error {
-	messageChan := make(chan interface{})
+	messageChan := make(chan any)
 	errorChan := make(chan error)
 
 	s.repo.ConsumeOrderMessage(brokerAddress, consumeTopic, messageChan, errorChan)

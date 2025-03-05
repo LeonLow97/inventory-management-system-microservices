@@ -18,6 +18,6 @@ type Repository interface {
 	GetCategoryByName(categoryName string) (*domain.Category, error)
 
 	// events
-	ConsumeOrderMessage(brokerAddress, topic string, messageChan chan interface{}, errorChan chan error)
+	ConsumeOrderMessage(brokerAddress, topic string, messageChan chan any, errorChan chan error)
 	ProduceOrderMessage(brokerAddress, topic string, message []kafka.Message) error
 }

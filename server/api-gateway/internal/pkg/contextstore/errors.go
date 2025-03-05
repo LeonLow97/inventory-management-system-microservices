@@ -3,5 +3,6 @@ package contextstore
 import "errors"
 
 var (
-	ErrUserIDNotInContext = errors.New("user id not in context")
+	ErrGRPCMetadataNotInContext    = errors.New("grpc metadata not in context")
+	ErrGRPCMetadataIncorrectFormat = errors.New("grpc metadata incorrect format")
 )

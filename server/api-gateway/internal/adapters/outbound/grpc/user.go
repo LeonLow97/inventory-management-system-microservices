@@ -19,15 +19,21 @@ func NewUserRepo(conn *grpc.ClientConn) ports.UserRepo {
 	}
 }
 
-func (r *UserRepo) GetUsers(ctx context.Context) (*[]domain.User, error) {
-	grpcResp, err := r.conn.GetUsers(ctx, nil)
+func (r *UserRepo) GetUsers(ctx context.Context, limit int64, cursor string) ([]domain.User, string, error) {
+	grpcReq := &pb.GetUsersRequest{
+		Limit:  limit,
+		Cursor: cursor,
+	}
+
+	grpcResp, err := r.conn.GetUsers(ctx, grpcReq)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	users := make([]domain.User, len(grpcResp.Users))
 	for i, grpcUser := range grpcResp.Users {
 		users[i] = domain.User{
+			ID:        grpcUser.ID,
 			FirstName: grpcUser.FirstName,
 			LastName:  grpcUser.LastName,
 			Email:     grpcUser.Email,
@@ -36,12 +42,11 @@ func (r *UserRepo) GetUsers(ctx context.Context) (*[]domain.User, error) {
 		}
 	}
 
-	return &users, nil
+	return users, grpcResp.NextCursor, nil
 }
 
-func (r *UserRepo) UpdateUser(ctx context.Context, req domain.User, userID int) error {
+func (r *UserRepo) UpdateUser(ctx context.Context, req domain.User) error {
 	grpcReq := &pb.UpdateUserRequest{
-		UserID:    int64(userID),
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Password:  req.Password,

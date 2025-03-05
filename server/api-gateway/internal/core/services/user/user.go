@@ -9,8 +9,8 @@ import (
 )
 
 type User interface {
-	GetUsers(ctx context.Context) (*[]domain.User, error)
-	UpdateUser(ctx context.Context, req domain.User, userID int) error
+	GetUsers(ctx context.Context, limit int64, cursor string) ([]domain.User, string, error)
+	UpdateUser(ctx context.Context, req domain.User) error
 }
 
 type service struct {
@@ -23,16 +23,16 @@ func NewUserService(r ports.UserRepo) User {
 	}
 }
 
-func (s *service) GetUsers(ctx context.Context) (*[]domain.User, error) {
-	users, err := s.userRepo.GetUsers(ctx)
+func (s *service) GetUsers(ctx context.Context, limit int64, cursor string) ([]domain.User, string, error) {
+	users, nextCursor, err := s.userRepo.GetUsers(ctx, limit, cursor)
 	if err != nil {
 		log.Printf("failed to get users with error: %v\n", err)
-		return nil, err
+		return nil, "", err
 	}
 
-	return users, nil
+	return users, nextCursor, nil
 }
 
-func (s *service) UpdateUser(ctx context.Context, req domain.User, userID int) error {
-	return s.userRepo.UpdateUser(ctx, req, userID)
+func (s *service) UpdateUser(ctx context.Context, req domain.User) error {
+	return s.userRepo.UpdateUser(ctx, req)
 }

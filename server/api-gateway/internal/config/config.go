@@ -51,6 +51,7 @@ type Config struct {
 			Global string `mapstructure:"global"`
 		} `mapstructure:"distributed_locks"`
 	} `mapstructure:"rate_limiting"`
+	AdminWhitelistedIPs []string `mapstructure:"admin_whitelisted_ips"`
 }
 
 const (

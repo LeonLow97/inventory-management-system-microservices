@@ -1,6 +1,7 @@
 package dto
 
 type User struct {
+	ID        int64  `json:"id"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
 	Email     string `json:"email,omitempty"`
@@ -10,7 +11,8 @@ type User struct {
 }
 
 type GetUsersResponse struct {
-	Users []User `json:"users"`
+	Users      []User `json:"users"`
+	NextCursor string `json:"next_cursor"`
 }
 
 type UpdateUserRequest struct {

@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func (s *Segmentio) Consumer(brokerAddress, topic string, messageChan chan interface{}, errorChan chan error) {
+func (s *Segmentio) Consumer(brokerAddress, topic string, messageChan chan any, errorChan chan error) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,

@@ -17,13 +17,17 @@ var (
 	}
 
 	// Generic errors
+	ErrBadRequest = &CustomError{
+		Code:    "400000",
+		Message: "Bad Request",
+	}
 	ErrUnauthorized = &CustomError{
 		Code:    "401000",
 		Message: "Unauthorized",
 	}
-	ErrBadRequest = &CustomError{
-		Code:    "400000",
-		Message: "Bad Request",
+	ErrForbidden = &CustomError{
+		Code:    "403000",
+		Message: "Forbidden",
 	}
 	ErrTooManyRequests = &CustomError{
 		Code:    "429000",
