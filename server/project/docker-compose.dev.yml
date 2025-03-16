@@ -1,0 +1,185 @@
+services:
+  api-gateway:
+    build:
+      context: ./../api-gateway
+      dockerfile: ./../api-gateway/Dockerfile
+    ports:
+      - '80:80'
+    environment:
+      MODE: docker
+    depends_on:
+      - authentication-service
+      # - inventory-service
+      # - order-service
+    networks:
+      - ims-network
+    restart: always
+  authentication-service:
+    build:
+      context: ./../authentication-service
+      dockerfile: ./../authentication-service/Dockerfile
+    ports:
+      - '50051:50051'
+    environment:
+      MODE: docker
+      POSTGRES_USER: authentication-postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: authentication-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: imsdb
+      SERVICE_PORT: '50051'
+    depends_on:
+      authentication-postgres:
+        condition: service_healthy
+    networks:
+      - ims-network
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  authentication-postgres:
+    image: 'postgres:14.2'
+    ports:
+      - '5432:5432'
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      POSTGRES_USER: authentication-postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: imsdb
+    volumes:
+      # using volumes instead of bind mounts
+      - postgres-authentication:/var/lib/postgresql/data
+      - ./init-db/init-authentication-db.sql:/docker-entrypoint-initdb.d/init-authentication-db.sq
+    networks:
+      - ims-network
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+  # inventory-service:
+  #   build:
+  #     context: ./../inventory-service
+  #     dockerfile: ./../inventory-service/Dockerfile
+  #   depends_on:
+  #     inventory-mysql:
+  #       condition: service_healthy
+  #   restart: always
+  #   ports:
+  #     - '50052:50052'
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   environment:
+  #     MODE: docker
+  #     MYSQL_USER: inventory-mysql
+  #     MYSQL_PASSWORD: password
+  #     MYSQL_HOST: inventory-mysql
+  #     MYSQL_PORT: '3306'
+  #     MYSQL_DATABASE: imsdb
+  #     SERVICE_PORT: '50052'
+  # inventory-mysql:
+  #   image: 'mysql:8.0'
+  #   ports:
+  #     - '3306:3306'
+  #   restart: always
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: secret-password
+  #     MYSQL_USER: inventory-mysql
+  #     MYSQL_PASSWORD: password
+  #     MYSQL_DATABASE: imsdb
+  #   volumes:
+  #     # using volumes instead of bind mounts
+  #     - mysql:/var/lib/mysql
+  #     - ./init-db/init-inventory-db.sql:/docker-entrypoint-initdb.d/init-inventory-db.sql
+  #   healthcheck:
+  #     test: mysqladmin ping -u$$MYSQL_USER -p$$MYSQL_PASSWORD
+  #     interval: 10s
+  #     timeout: 2s
+
+  # order-service:
+  #   build:
+  #     context: ./../order-service
+  #     dockerfile: ./../order-service/Dockerfile
+  #   depends_on:
+  #     order-postgres:
+  #       condition: service_healthy
+  #   restart: always
+  #   ports:
+  #     - "8003:8003"
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   environment:
+  #     MODE: docker
+  #     POSTGRES_USER: order-postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_HOST: order-postgres
+  #     POSTGRES_PORT: "5432"
+  #     POSTGRES_DB: imsdb
+  #     SERVICE_PORT: "8003"
+
+  # order-postgres:
+  #   image: "postgres:14.2"
+  #   ports:
+  #     - "5433:5432"
+  #   restart: always
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   environment:
+  #     POSTGRES_USER: order-postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: imsdb
+  #   # volumes:
+  #   # using volumes instead of bind mounts
+  #   # - postgres-order:/var/lib/postgresql/data
+  #   # - ./init-db/init-order-db.sql:/docker-entrypoint-initdb.d/init-order-db.sql
+  #   healthcheck:
+  #     test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+  #     interval: 10s
+  #     timeout: 2s
+
+  ## Global Service
+  kafka:
+    image: bitnami/kafka:latest
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+  consul:
+    image: hashicorp/consul:1.15.4
+    ports:
+      - '8500:8500' # Web UI
+      - '8600:8600/udp' # DNS interface
+    command: agent -dev -client=0.0.0.0
+  redis:
+    image: redis:7.4.2
+    container_name: redis
+    ports:
+      - '6379:6379'
+    environment:
+      - REDIS_PASSWORD=password
+
+volumes:
+  postgres-authentication:
+  # postgres-order:
+  mysql:
+
+networks:
+  ims-network:
+    driver: bridge

@@ -1,7 +1,7 @@
 version: '3.8' # Or another supported version
 services:
   api-gateway:
-    image: '931100716322.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:api-gateway-latest'
+    image: '<AWS_ACCOUNT_ID>.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:api-gateway-latest'
     ports:
       - '80:80'
     environment:
@@ -11,18 +11,18 @@ services:
         limits:
           memory: 512M
     depends_on:
-      - authentication-service
+      - authentication_service
     networks:
       - ims-network
   authentication-service:
-    image: '931100716322.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:authentication-service-v1'
+    image: '<AWS_ACCOUNT_ID>.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:authentication-service-latest'
     ports:
       - '50051:50051'
     environment:
       MODE: production
       POSTGRES_USER: authentication_postgres
-      POSTGRES_PASSWORD: leonlowandfangjen
-      POSTGRES_HOST: authentication-postgres.crq68e0q8a06.ap-southeast-1.rds.amazonaws.com
+      POSTGRES_PASSWORD: FROM_ENV
+      POSTGRES_HOST: FROM_ENV
       POSTGRES_PORT: 5432
       POSTGRES_DB: imsdb
     deploy:

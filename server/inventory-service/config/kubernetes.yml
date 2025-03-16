@@ -1,4 +1,4 @@
-mode: 'staging'
+mode: 'kubernetes'
 
 server:
   name: inventory-clusterip

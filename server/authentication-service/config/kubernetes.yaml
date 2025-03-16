@@ -1,14 +1,12 @@
-mode: "staging"
+mode: "docker"
 
 server:
-  name: order-clusterip
-  port: 8003
+  name: authentication-clusterip
+  port: 50051
 
-kafka:
-  broker_address: "broker:9092"
-
-inventory_service:
-  url: "inventory-clusterip:8002"
+jwt:
+  secret_key: FROM_K8S
+  expiry: 15 # in minutes
 
 postgres:
   user: FROM_K8S

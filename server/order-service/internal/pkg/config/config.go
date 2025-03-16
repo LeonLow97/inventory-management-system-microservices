@@ -47,7 +47,7 @@ type HashicorpConsulConfig struct {
 const (
 	ModeDevelopment = "development"
 	ModeDocker      = "docker"
-	ModeStaging     = "staging" // local kubernetes
+	ModeKubernetes     = "kubernetes" // local kubernetes
 )
 
 func LoadConfig() (*Config, error) {

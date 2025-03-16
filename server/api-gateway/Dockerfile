@@ -11,7 +11,7 @@ COPY config /app/config
 
 COPY . .
 
-ENV GOOS=linux CGO_ENABLED=0
+ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 
 RUN go build -o apiGateway ./cmd/api
 

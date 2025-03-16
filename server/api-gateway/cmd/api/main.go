@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"time"
 
 	"log"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/LeonLow97/internal/core/services/auth"
 	"github.com/LeonLow97/internal/core/services/user"
 	"github.com/LeonLow97/internal/pkg/cache"
-	"github.com/LeonLow97/internal/pkg/consul"
 )
 
 type application struct {
@@ -37,21 +34,22 @@ func main() {
 	// Load application cache
 	appCache := cache.NewRedisClient(*cfg)
 
-	// create a consul client
-	hashicorpConsul := consul.NewConsul(*cfg)
-	hashicorpClient, err := hashicorpConsul.NewConsul(*cfg)
-	if err != nil {
-		log.Fatalf("failed to create hashicorp consul client with error: %v\n", err)
-	}
+	// // create a consul client
+	// hashicorpConsul := consul.NewConsul(*cfg)
+	// hashicorpClient, err := hashicorpConsul.NewConsul(*cfg)
+	// if err != nil {
+	// 	log.Fatalf("failed to create hashicorp consul client with error: %v\n", err)
+	// }
+	// log.Println("successfully created hashicorp client")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	// defer cancel()
 
-	if err := hashicorpClient.RefreshServices(ctx); err != nil {
-		log.Fatalln("failed to refresh services")
-	}
+	// if err := hashicorpClient.RefreshServices(ctx); err != nil {
+	// 	log.Fatalln("failed to refresh services", err)
+	// }
 
-	grpcClient := grpcclient.NewGRPCClient(*cfg, hashicorpClient)
+	grpcClient := grpcclient.NewGRPCClient(*cfg, nil)
 	defer grpcClient.AuthenticationClient().Close()
 	// defer grpcClient.InventoryClient().Close()
 	// defer grpcClient.OrderClient().Close()

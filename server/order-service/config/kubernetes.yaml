@@ -1,12 +1,14 @@
-mode: "docker"
+mode: "kubernetes"
 
 server:
-  name: authentication-clusterip
-  port: 8001
+  name: order-clusterip
+  port: 8003
 
-jwt:
-  secret_key: FROM_K8S
-  expiry: 15 # in minutes
+kafka:
+  broker_address: "broker:9092"
+
+inventory_service:
+  url: "inventory-clusterip:8002"
 
 postgres:
   user: FROM_K8S

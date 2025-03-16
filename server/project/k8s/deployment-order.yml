@@ -32,7 +32,7 @@ spec:
             failureThreshold: 5
           env:
             - name: MODE
-              value: staging
+              value: kubernetes
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
