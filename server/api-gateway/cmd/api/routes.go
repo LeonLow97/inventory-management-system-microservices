@@ -12,14 +12,15 @@ func (app *application) routes() *gin.Engine {
 	middleware := middleware.NewMiddleware(*app.Config, app.AppCache)
 
 	router := gin.Default()
-	router.Use(middleware.IPWhitelistingMiddleware())
-	router.Use(middleware.JWTAuthMiddleware())
-	// router.Use(middleware.RateLimitingMiddleware())
 
 	// Perform healthcheck endpoint to check if service is healthy and running
 	router.GET("/healthcheck", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "OK", "message": "api gateway healthy and running!"})
 	})
+
+	router.Use(middleware.IPWhitelistingMiddleware())
+	router.Use(middleware.JWTAuthMiddleware())
+	// router.Use(middleware.RateLimitingMiddleware())
 
 	// Authentication Microservice Endpoints
 	router.POST("/login", app.AuthHandler.Login())

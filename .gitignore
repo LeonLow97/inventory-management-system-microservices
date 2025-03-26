@@ -16,4 +16,8 @@ server/**/.env
 
 node_modules
 
+# AWS
+.elasticbeanstalk
+
+# Ignore docker-compose.yml in all subdirectories as this was used for AWS deployment
 **/docker-compose.yml

@@ -20,7 +20,7 @@ spec:
             - containerPort: 8002
           env:
             - name: MODE
-              value: staging
+              value: kubernetes
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:

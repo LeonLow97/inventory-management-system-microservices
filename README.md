@@ -1,3 +1,9 @@
+# Project Current State
+
+- Only API Gateway and Authentication Microservice is working.
+- Previously, all services (authentication, order and inventory) are working but currently trying to deploy 2 services to AWS so I shut down the network communication to order and inventory microservices.
+- Will be revamping the entire Microservices Architecture and deploy to AWS.
+
 # Inventory Management System
 
 ## Table of Contents
@@ -8,6 +14,7 @@
 - [Project Setup](#project-setup)
   - [Docker](#docker)
   - [Kubernetes](#kubernetes)
+  - [AWS Deployment](#aws-deployment)
 
 ## Overview
 
@@ -136,3 +143,9 @@ kubectl get pods
 ```sh
 curl http://localhost:80/healthcheck
 ```
+
+# AWS Deployment
+
+## AWS Elastic Beanstalk
+
+- For deployment steps, check out [IMS AWS Elastic Beanstalk Deployment Guide](./server/docs/AWS/aws-elastic-beanstalk/deployment.md)

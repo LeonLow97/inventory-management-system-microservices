@@ -17,23 +17,23 @@ spec:
         - name: authentication
           image: localhost:5050/ims-authentication:latest
           ports:
-            - containerPort: 8001
+            - containerPort: 50051
           # TODO: add healthcheck probes in auth microservice
           # readinessProbe:
           #   grpc:
-          #     port: 8001
+          #     port: 50051
           #   initialDelaySeconds: 10
           #   periodSeconds: 20
           #   failureThreshold: 5
           # livenessProbe:
           #   grpc:
-          #     port: 8001
+          #     port: 50051
           #   initialDelaySeconds: 10
           #   periodSeconds: 20
           #   failureThreshold: 5
           env:
             - name: MODE
-              value: staging
+              value: kubernetes
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:

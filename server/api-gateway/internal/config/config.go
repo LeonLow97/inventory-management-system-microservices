@@ -55,8 +55,8 @@ type Config struct {
 }
 
 const (
-	ModeDocker  = "docker"
-	ModeStaging = "staging" // local kubernetes
+	ModeDocker     = "docker"
+	ModeKubernetes = "kubernetes" // local kubernetes
 )
 
 func LoadConfig() (*Config, error) {

@@ -20,7 +20,7 @@ spec:
             - containerPort: 80
           env:
             - name: MODE
-              value: staging
+              value: kubernetes
           # Ensures that the container is ready to serve traffic before routing traffic to it.
           readinessProbe:
             httpGet:
