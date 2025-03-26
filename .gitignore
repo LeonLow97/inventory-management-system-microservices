@@ -15,3 +15,5 @@ server/**/.env
 .env.production.local
 
 node_modules
+
+**/docker-compose.yml
