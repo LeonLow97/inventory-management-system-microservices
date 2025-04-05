@@ -12,7 +12,7 @@ server:
   port: 80
 
 auth_service:
-  name: authentication-service
+  name: FROM_ENV
 
 inventory_service:
   name: inventory-service

@@ -16,3 +16,8 @@ cd $AUTH_SERVICE_DIR
 docker build -f Dockerfile --platform linux/amd64 -t $ECR_AUTHENTICATION_SERVICE_IMAGE_NAME .
 docker tag $ECR_AUTHENTICATION_SERVICE_IMAGE_NAME $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$ECR_AUTHENTICATION_SERVICE_IMAGE_TAG
 docker push $AWS_ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$ECR_AUTHENTICATION_SERVICE_IMAGE_TAG >/dev/null 2>&1
+
+# Clean variables file (if exists)
+if [ -f variables.txt ]; then
+  > variables.txt
+fi

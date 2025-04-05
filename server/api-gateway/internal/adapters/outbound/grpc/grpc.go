@@ -34,7 +34,7 @@ func NewGRPCClient(cfg config.Config, consul *consul.Consul) GRPCClient {
 	// orderService := services[cfg.OrderService.Name]
 
 	// authConn, err := createGRPCConnection(ctx, fmt.Sprintf("%s:%d", authService.Service, authService.Port))
-	authConn, err := createGRPCConnection(ctx, "authentication-service:50051")
+	authConn, err := createGRPCConnection(ctx, cfg.AuthService.Name+":50051")
 	if err != nil {
 		log.Fatalf("Error dialing authentication microservice gRPC: %v", err)
 	}

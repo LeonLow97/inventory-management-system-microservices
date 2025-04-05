@@ -364,7 +364,7 @@ authentication-service_1  | 2025/03/10 12:44:27 Failed to connect to database wi
   - The solution in the StackOverflow link suggests changing `rds.force_ssl` from `1` to `0` which disables the requirement for SSL encryption, meaning clients can connect without encrypting their traffic.
   - Without SSL, credentials and queries (including sensitive data like passwords and PII) are sent **unencrypted** over the network.
   - For IMS project, the risk is acceptable because we are only testing the deployment of IMS to a Production environment. However, for actual production environment with users, we must enable SSL.
-  - The solution involves creating a "New Parameter Group". In the new parameter group created, under "Filter Parameters", type `rds.force_ssl` and change the value from 1 to 0 for that parameter. Locate your RSS instance and modify the DB instance to use this parameter group.
+  - The solution involves creating a "New Parameter Group". In the new parameter group created, under "Filter Parameters", type `rds.force_ssl` and change the value from 1 to 0 for that parameter. Locate your RDS instance and modify the DB instance to use this parameter group.
 
 ### 5.4 Redeploy our Elastic Beanstalk
 

@@ -5,7 +5,7 @@ build:
 	@echo "Docker images built and started!"
 
 down:
-	docker-compose down -f docker-compose.dev.yml
+	docker-compose -f docker-compose.dev.yml down
 
 ec2_deploy:
 	sh ./deployment/common/ecr.sh
@@ -18,3 +18,9 @@ ec2_clean:
 	# sh ./deployment/common/rds-cleanup.sh
 	sh ./deployment/common/ecr-cleanup.sh
 	@echo "Cleanup Completed!"
+
+ecr_push:
+	sh ./deployment/common/ecr.sh
+
+ecr_clean:
+	sh ./deployment/common/ecr-cleanup.sh

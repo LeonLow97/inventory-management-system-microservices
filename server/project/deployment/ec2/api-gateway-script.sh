@@ -13,4 +13,9 @@ sudo usermod -aG docker ec2-user
 aws ecr get-login-password --region ap-southeast-1 | sudo docker login --username AWS --password-stdin 931100716322.dkr.ecr.ap-southeast-1.amazonaws.com
 
 sudo docker pull 931100716322.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:api-gateway-latest
-sudo docker run -d --name api-gateway -p 8080:8080 931100716322.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:api-gateway-latest
+
+# sudo docker run -d --name api-gateway -p 8080:8080 \
+#   -e MODE=production \
+#   -e AUTH_SERVICE_NAME=your_auth_service_name \
+#   931100716322.dkr.ecr.ap-southeast-1.amazonaws.com/ims-repository:api-gateway-latest
+
