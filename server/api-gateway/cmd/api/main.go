@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"log"
 
 	"github.com/LeonLow97/internal/adapters/inbound/web"
@@ -90,7 +88,8 @@ func main() {
 
 	// Using gin to start api gateway server, exit status 1 if fail to start server
 	log.Println("Starting API Gateway for Inventory Management System!")
-	apiGatewayPort := fmt.Sprintf(":%d", cfg.Server.Port)
+	// apiGatewayPort := fmt.Sprintf(":%d", cfg.Server.Port)
+	apiGatewayPort := "0.0.0.0:8080"
 	if err := router.Run(apiGatewayPort); err != nil {
 		log.Fatal("failed to run server", err)
 	}

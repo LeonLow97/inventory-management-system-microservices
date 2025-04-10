@@ -18,6 +18,27 @@ node_modules
 
 # AWS
 .elasticbeanstalk
+variables.txt
+ssh_commands.txt
+*.pem
+*.pub
+*.ssh
 
 # Ignore docker-compose.yml in all subdirectories as this was used for AWS deployment
 **/docker-compose.yml
+
+# Ignore the .terraform directory, which contains downloaded modules
+.terraform/
+
+# Ignore terraform provider binaries
+terraform-provider-*
+
+# Ignore Terraform state files and backups
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+
+# Ignore crash log files
+crash.log

@@ -22,7 +22,7 @@ Authentication Microservice requires a PostgreSQL database, so we need an **RDS 
 
 ```
 aws rds create-db-instance \
-    --db-instance-identifier authentication_postgres \
+    --db-instance-identifier authentication-postgres \
     --db-instance-class db.t3.micro \
     --engine postgres \
     --allocated-storage 5 \
@@ -33,7 +33,7 @@ aws rds create-db-instance \
     --publicly-accessible
 ```
 
-- `--db-instance-identifier authentication_postgres`: unique name (identifier) for the database instance.
+- `--db-instance-identifier authentication-postgres`: unique name (identifier) for the database instance.
 - `--db-instance-class db.t3.micro`: instance class (size) for the database
 - `--engine postgres`: database engine to be used is PostgreSQL
 - `--allocated-storage 5`: allocates 5 GB of storage space for the database.
@@ -80,39 +80,39 @@ psql: error: connection to server at "authentication-postgres.xxxxxxxxxxxx.ap-so
 CREATE DATABASE imsdb;
 ```
 
-### 1.4 Create user `authentication_postgres` in `imsdb` database
+### 1.4 Create user `authentication-postgres` in `imsdb` database
 
 - Connect to `imsdb` database with master user `<MASTER_USERNAME>`:\
   - `psql -h <RDS_ENDPOINT> -U <MASTER_USERNAME> -d imsdb`
 
 ```sql
--- Create username for authentication_postgres
-CREATE USER authentication_postgres WITH PASSWORD '<PASSWORD>';
+-- Create username for authentication-postgres
+CREATE USER authentication-postgres WITH PASSWORD '<PASSWORD>';
 
--- Grant all privileges on the imsdb database to the master user and authentication_postgres user
+-- Grant all privileges on the imsdb database to the master user and authentication-postgres user
 GRANT ALL PRIVILEGES ON DATABASE imsdb TO '<MASTER_USERNAME>';
-GRANT ALL PRIVILEGES ON DATABASE imsdb TO authentication_postgres;
+GRANT ALL PRIVILEGES ON DATABASE imsdb TO authentication-postgres;
 
--- Grant all privileges on the public schema and specific privileges (SELECT, INSERT, UPDATE, DELETE) on all current tables within the public schema to authentication_postgres
-GRANT ALL PRIVILEGES ON SCHEMA public TO authentication_postgres;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authentication_postgres;
+-- Grant all privileges on the public schema and specific privileges (SELECT, INSERT, UPDATE, DELETE) on all current tables within the public schema to authentication-postgres
+GRANT ALL PRIVILEGES ON SCHEMA public TO authentication-postgres;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authentication-postgres;
 
--- Set default privileges to grant authentication_postgres all privileges on any new tables and sequences created in the public schema
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authentication_postgres;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authentication_postgres;
+-- Set default privileges to grant authentication-postgres all privileges on any new tables and sequences created in the public schema
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authentication-postgres;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authentication-postgres;
 
 -- Lists details about the public schema, including its owner, access privileges, and description, if available
 \dn+ public
 ```
 
-### 1.5 Connect to `imsdb` database with newly created user `authentication_postgres`
+### 1.5 Connect to `imsdb` database with newly created user `authentication-postgres`
 
 ```sh
 # Attempt to connect using the newly created credentials
-psql -h <RDS_ENDPOINT> -U authentication_postgres -d imsdb
+psql -h <RDS_ENDPOINT> -U authentication-postgres -d imsdb
 ```
 
-![RDS psql authentication_postgres](../../diagrams/rds-psql-authentication-postgres.png)
+![RDS psql authentication-postgres](../../diagrams/rds-psql-authentication-postgres.png)
 
 ### 1.5 Create DB tables in Postgres Database
 
@@ -131,7 +131,7 @@ services:
       - "50051:50051"
     environment:
       MODE: production
-      POSTGRES_USER: authentication_postgres
+      POSTGRES_USER: authentication-postgres
       POSTGRES_PASSWORD: <POSTGRES_PASSWORD>
       POSTGRES_HOST: authentication-postgres.xxxxxxxxxxxx.ap-southeast-1.rds.amazonaws.com
       POSTGRES_PORT: 5432
@@ -144,7 +144,7 @@ services:
 
 This should generate the Database Source Name (DSN) for PostgreSQL connection in Authentication Microservice:
 
-> `postgres://authentication_postgres:<POSTGRES_PASSWORD>@authentication-postgres.xxxxxxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/imsdb`
+> `postgres://authentication-postgres:<POSTGRES_PASSWORD>@authentication-postgres.xxxxxxxxxxxx.ap-southeast-1.rds.amazonaws.com:5432/imsdb`
 
 ### 1.3 Connect to PostgreSQL Instance
 
@@ -355,7 +355,7 @@ aws ec2 authorize-security-group-ingress \
 - After Step 5.4, I redeployed my beanstalk application with `eb deploy` and ran into the following error (retrieved from `/eb-docker/containers/eb-current-app/eb-stdouterr.log` log file):
 
 ```
-authentication-service_1  | 2025/03/10 12:44:27 Failed to connect to database with error: failed to connect to `host=authentication-postgres.xxxxxxxx.ap-southeast-1.rds.amazonaws.com user=authentication_postgres database=imsdb`: server error (FATAL: no pg_hba.conf entry for host "xxx.xx.xx.xxx", user "authentication_postgres", database "imsdb", no encryption (SQLSTATE 28000))
+authentication-service_1  | 2025/03/10 12:44:27 Failed to connect to database with error: failed to connect to `host=authentication-postgres.xxxxxxxx.ap-southeast-1.rds.amazonaws.com user=authentication-postgres database=imsdb`: server error (FATAL: no pg_hba.conf entry for host "xxx.xx.xx.xxx", user "authentication-postgres", database "imsdb", no encryption (SQLSTATE 28000))
 ```
 
 - Why does this happen?
@@ -364,7 +364,7 @@ authentication-service_1  | 2025/03/10 12:44:27 Failed to connect to database wi
   - The solution in the StackOverflow link suggests changing `rds.force_ssl` from `1` to `0` which disables the requirement for SSL encryption, meaning clients can connect without encrypting their traffic.
   - Without SSL, credentials and queries (including sensitive data like passwords and PII) are sent **unencrypted** over the network.
   - For IMS project, the risk is acceptable because we are only testing the deployment of IMS to a Production environment. However, for actual production environment with users, we must enable SSL.
-  - The solution involves creating a "New Parameter Group". In the new parameter group created, under "Filter Parameters", type `rds.force_ssl` and change the value from 1 to 0 for that parameter. Locate your RSS instance and modify the DB instance to use this parameter group.
+  - The solution involves creating a "New Parameter Group". In the new parameter group created, under "Filter Parameters", type `rds.force_ssl` and change the value from 1 to 0 for that parameter. Locate your RDS instance and modify the DB instance to use this parameter group.
 
 ### 5.4 Redeploy our Elastic Beanstalk
 
