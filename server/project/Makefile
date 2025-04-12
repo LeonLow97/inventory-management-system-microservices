@@ -24,17 +24,6 @@ ecr_push:
 ecr_clean:
 	sh ./aws-cli/common/ecr-cleanup.sh
 
-terraform_plan_ec2 ecr_push:
-	cd ./terraform/environments/production-ec2 && terraform apply
-terraform_destroy_ec2 ecr_clean:
-	cd ./terraform/environments/production-ec2 && terraform destroy 
-
-terraform_plan_eks ecr_push:
-	sh ./aws-cli/common/ecr.sh
-	cd ./terraform/environments/production-eks && terraform apply
-terraform_destroy_eks ecr_clean:
-	cd ./terraform/environments/production-eks && terraform destroy
-
 terraform_ec2_key_pairs:
 	rm -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ1
 	rm -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ2
