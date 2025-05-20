@@ -148,4 +148,5 @@ curl http://localhost:80/healthcheck
 
 ## AWS Elastic Beanstalk
 
-- For deployment steps, check out [IMS AWS Elastic Beanstalk Deployment Guide](./server/docs/AWS/aws-elastic-beanstalk/deployment.md)
+- For deployment steps, check out [IMS AWS Elastic Beanstalk Deployment Guide](./server/project/docs/AWS/aws-elastic-beanstalk/deployment.md)
+- For deployment steps, check out [IMS AWS EC2 Deployment Guide](./server/project/docs/AWS/aws-ec2/deployment.md)

@@ -3,6 +3,8 @@
 sudo dnf install -y postgresql15
 
 USER="ec2-user"
+S3_URI="s3://ims-bucket-jiewei/sql-uploads/init-authentication-db.sql"
+LOCAL_PATH="/home/ec2-user/init-authentication-db.sql"
 
 # Fetching Bastion host IP and key name dynamically
 BASTION_PUBLIC_IP_AZ1=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=BastionHost" --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
@@ -14,12 +16,17 @@ DB_MASTER_USERNAME=$(aws ssm get-parameters --names "/ims/db/master-username" --
 DB_MASTER_PASSWORD=$(aws ssm get-parameters --names "/ims/db/master-password" --with-decryption --query "Parameters[0].Value" --output text)
 IMS_DB_NAME=$(aws ssm get-parameters --names "/ims/db/db-name" --query "Parameters[0].Value" --output text)
 
+echo "RDS_ENDPOINT=$RDS_ENDPOINT"
+echo "DB_MASTER_USERNAME=$DB_MASTER_USERNAME"
+echo "DB_MASTER_PASSWORD=$DB_MASTER_PASSWORD"
+echo "IMS_DB_NAME=$IMS_DB_NAME"
+
 # Install PostgreSQL client
 sudo dnf install -y postgresql15
 
 # Create imsdb database
 echo "Creating $IMS_DB_NAME database..."
-PGPASSWORD=$DB_MASTER_PASSWORD psql -h $RDS_ENDPOINT -U $DB_MASTER_USERNAME -d postgres -c "CREATE DATABASE $IMS_DB_NAME;" || { echo "❌ Failed to create database $IMS_DB_NAME"; exit 1; }
+PGPASSWORD=$DB_MASTER_PASSWORD psql -h $RDS_ENDPOINT -U $DB_MASTER_USERNAME -d postgres -c "CREATE DATABASE $IMS_DB_NAME;" || { echo "❌ Failed to create database $IMS_DB_NAME"; }
 echo "✅ Successfully created database $IMS_DB_NAME."
 
 # Grant privileges to the master user
@@ -37,15 +44,21 @@ PGPASSWORD=$DB_MASTER_PASSWORD psql -h $RDS_ENDPOINT -U $DB_MASTER_USERNAME -d $
   -- Set default privileges for new tables and sequences in the public schema
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_MASTER_USERNAME;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_MASTER_USERNAME;
-" || { echo "❌ Failed to grant privileges to $DB_MASTER_USERNAME"; exit 1; }
+" || { echo "❌ Failed to grant privileges to $DB_MASTER_USERNAME"; }
 echo "✅ Successfully granted privileges to $DB_MASTER_USERNAME."
 
-# Copy the SQL initialization file to the Bastion host
-echo "Copying SQL initialization file to Bastion host..."
-scp -i "$EC2_BASTION_HOST_KEY_NAME_AZ1" "./init-db/init-authentication-db.sql" "$USER@$BASTION_PUBLIC_IP_AZ1:~" || { echo "❌ Failed to copy SQL file to Bastion host"; exit 1; }
-echo "✅ Successfully copied SQL file."
+echo "Downloading SQL script from: $S3_URI"
+if aws s3 cp "$S3_URI" "$LOCAL_PATH" --region ap-southeast-1; then
+  echo "✅ Successfully downloaded SQL script to $LOCAL_PATH"
+else
+  echo "❌ Failed to download SQL script from S3. Exiting."
+fi
 
-# Run the SQL script to initialize the database
-echo "Running the SQL script to initialize database tables..."
-PGPASSWORD=$DB_MASTER_PASSWORD psql -h $RDS_ENDPOINT -U $DB_MASTER_USERNAME -d $IMS_DB_NAME -f ./init-db/init-authentication-db.sql || { echo "❌ Failed to execute SQL script"; exit 1; }
-echo "✅ Successfully created tables in Authentication Postgres Database."
+echo "Running SQL script to initialize Authentication DB..."
+if PGPASSWORD="$DB_MASTER_PASSWORD" psql -h "$RDS_ENDPOINT" -U "$DB_MASTER_USERNAME" -d "$IMS_DB_NAME" -f "$LOCAL_PATH"; then
+  echo "✅ Successfully executed SQL script on $IMS_DB_NAME"
+else
+  echo "❌ Failed to execute SQL script. Check database connectivity and credentials."
+fi
+
+echo "EC2 setup completed successfully."

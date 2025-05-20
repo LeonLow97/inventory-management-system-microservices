@@ -1,4 +1,8 @@
-# IMS Deployment to AWS EC2 (Elastic Compute Cloud)
+# IMS Deployment to AWS EC2
+
+<p align="center">
+  <img src="./aws-ec2-architecture.jpg" alt="IMS AWS EC2 Architecture"/>
+</p>
 
 ## Prerequisites
 
@@ -7,8 +11,7 @@ Before deploying IMS to AWS EC2, ensure you have the following:
 - An AWS Account
 - **AWS CLI** installed and configured (`aws configure`)
 - **Docker** installed
-- **Elastic Beanstalk CLI (EB CLI)** installed (`pip install awsebcli`)
-- A **PostgreSQL Database** (Use AWS RDS or deploy inside Elastic Beanstalk)
+- A **PostgreSQL Database**, AWS RDS
 
 # IAM Permissions (Least Privilege Principle)
 
