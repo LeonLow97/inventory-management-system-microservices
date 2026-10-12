@@ -1,26 +1,35 @@
 services:
   api-gateway:
     build:
-      context: ../../api-gateway
+      context: ../..
+      dockerfile: api-gateway/Dockerfile
     restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - '8080:8080'
     environment:
       MODE: docker
       REDIS_PASSWORD: 123e4567
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://api-gateway:80/health/readiness']
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health/readiness']
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
 
-  user-service:
+  authify-service:
     build:
-      context: ../../user-service
+      context: ../..
+      dockerfile: authify-service/Dockerfile
     depends_on:
       user-postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-schema-init:
+        condition: service_completed_successfully
     restart: always
     environment:
       MODE: docker
@@ -51,12 +60,39 @@ services:
       interval: 10s
       timeout: 2s
 
+  user-schema-init:
+    image: postgres:17
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: 'dba872b7'
+    volumes:
+      - ../../authify-service/schema/users.sql:/schema/users.sql:ro
+    command:
+      - psql
+      - -h
+      - user-postgres
+      - -U
+      - authify
+      - -d
+      - authify_users_db
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /schema/users.sql
+
   redis:
     image: redis:alpine
     restart: always
     ports:
       - '6379:6379'
     command: ['redis-server', '--requirepass', '123e4567']
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '123e4567', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
 volumes:
   user-volume:

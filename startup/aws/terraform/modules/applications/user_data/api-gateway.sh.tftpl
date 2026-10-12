@@ -1,0 +1,84 @@
+#!/bin/bash
+set -euo pipefail
+
+export AWS_DEFAULT_REGION="${region}"
+
+required_parameter() {
+  local name="$1"
+  local decrypt="$2"
+  local value
+
+  for attempt in $(seq 1 30); do
+    if [[ "$decrypt" == "true" ]]; then
+      if value="$(aws ssm get-parameter --name "$name" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null)"; then
+        printf '%s\n' "$value"
+        return 0
+      fi
+    elif value="$(aws ssm get-parameter --name "$name" --query 'Parameter.Value' --output text 2>/dev/null)"; then
+      printf '%s\n' "$value"
+      return 0
+    fi
+
+    sleep 10
+  done
+
+  echo "Could not read required SSM parameter $name." >&2
+  return 1
+}
+
+optional_parameter() {
+  local name="$1"
+
+  if [[ -z "$name" ]]; then
+    return 0
+  fi
+
+  aws ssm get-parameter --name "$name" --query 'Parameter.Value' --output text 2>/dev/null || true
+}
+
+REDIS_ADDRESS="$(required_parameter "${parameter_names.redis_address}" false)"
+JWT_SECRET="$(required_parameter "${parameter_names.jwt_secret}" true)"
+JWT_DOMAIN="$(optional_parameter "${parameter_names.jwt_domain}")"
+
+dnf install -y docker curl
+systemctl enable --now docker
+
+pull_image() {
+  for attempt in $(seq 1 120); do
+    if aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${ecr_registry}" >/dev/null 2>&1 && docker pull "${image_uri}"; then
+      return 0
+    fi
+    sleep 15
+  done
+
+  echo "Could not pull API Gateway image ${image_uri}." >&2
+  return 1
+}
+
+pull_image
+docker rm -f api-gateway >/dev/null 2>&1 || true
+docker run -d \
+  --name api-gateway \
+  --restart=always \
+  -p "${api_gateway_port}:${api_gateway_port}" \
+  -e MODE=production \
+  -e SERVER_PORT="${api_gateway_port}" \
+  -e AUTHIFY_SERVICE_BASE_URL="${authify_service_address}" \
+  -e AUTHIFY_SERVICE_PORT="${authify_service_port}" \
+  -e REDIS_ADDRESS="$REDIS_ADDRESS" \
+  -e REDIS_PORT="${redis_port}" \
+  -e AUTH_JWT_TOKEN_SECRET="$JWT_SECRET" \
+  -e AUTH_JWT_TOKEN_DOMAIN="$JWT_DOMAIN" \
+  "${image_uri}"
+
+for attempt in $(seq 1 60); do
+  if curl --connect-timeout 2 --fail --silent "http://127.0.0.1:${api_gateway_port}/health/readiness" >/dev/null; then
+    echo "API Gateway readiness check passed."
+    exit 0
+  fi
+  sleep 5
+done
+
+docker logs api-gateway >&2 || true
+echo "API Gateway did not become ready." >&2
+exit 1

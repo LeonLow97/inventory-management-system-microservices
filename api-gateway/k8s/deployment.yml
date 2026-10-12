@@ -13,9 +13,11 @@ spec:
       labels:
         authify: api-gateway # pod label
     spec:
+      enableServiceLinks: false
       containers:
         - name: api-gateway
           image: localhost:5050/authify-api-gateway:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:

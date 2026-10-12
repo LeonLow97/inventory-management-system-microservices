@@ -1,0 +1,285 @@
+{
+  "info": {
+    "name": "Authify API Gateway",
+    "description": "REST API exposed by the Authify API Gateway.\n\n## Setup\nSet `baseUrl` to the gateway URL. The default points to local development: `http://127.0.0.1:8080`.\n\n## Authentication\nRun **Authentication \u2192 Log in** first. A successful login sets the `authify_token` HttpOnly cookie; Postman\u2019s cookie jar stores and sends it automatically for requests to the same host. The protected user requests require that cookie. Do not add a bearer token header. The cookie name and security settings can differ by deployment; this collection uses the development configuration.\n\n## Typical workflow\n1. Create an account with **Sign up**, or use an existing account.\n2. Log in to establish the cookie.\n3. Call **Users \u2192 List users** with an admin account, or **Update my user** for the authenticated account.\n4. Call **Log out** to clear the cookie.\n\nPasswords must be 8\u201320 characters and contain uppercase, lowercase, a digit, and one of `@$!%*?&`. This collection contains example values only; replace them with credentials for your environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/liveness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "liveness"
+              ]
+            },
+            "description": "Checks that the API Gateway process is running.\n\n**Success:** `200 OK` with `status: alive`. This does not check external dependencies."
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/readiness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "readiness"
+              ]
+            },
+            "description": "Checks whether the gateway is ready to serve traffic by pinging Redis.\n\n**Success:** `200 OK` with `status: ready`.\n**Dependency unavailable:** `503 Service Unavailable` with `status: unhealthy` and an error message."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Log in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "login"
+              ]
+            },
+            "description": "Authenticates with email and password. On success, the gateway returns a user summary and sets the `authify_token` cookie. Postman stores the cookie automatically for subsequent requests to this host.\n\n**Body fields**\n- `email` (string, required): Valid email address, 10\u2013100 characters.\n- `password` (string, required): 8\u201320 characters; must include uppercase, lowercase, digit, and one special character from `@$!%*?&`.\n\n**Success:** `200 OK`; flat JSON user summary with `first_name`, `last_name`, `email`, and `admin` when present.\n**Invalid input:** `400 Bad Request`. **Invalid credentials:** `401 Unauthorized`. **Rate limited:** `429 Too Many Requests`.\n\nConfigured login limits are one request per second and 10 failed attempts per 60-second window, keyed by email and client IP. Update the sample credentials before sending.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.chen@example.com\",\n  \"password\": \"SecurePass1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sign up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "signup"
+              ]
+            },
+            "description": "Creates a user account. This request does not log the account in; call **Log in** afterward to receive the authentication cookie.\n\n**Body fields**\n- `first_name` (string, required): 1\u201350 characters.\n- `last_name` (string, required): 1\u201350 characters.\n- `email` (string, required): Valid email address, 10\u2013100 characters.\n- `password` (string, required): 8\u201320 characters; must include uppercase, lowercase, digit, and one special character from `@$!%*?&`.\n\n**Success:** `201 Created`, empty response body. **Invalid input:** `400 Bad Request`. **Email already registered:** `409 Conflict`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Alex\",\n  \"last_name\": \"Chen\",\n  \"email\": \"alex.chen@example.com\",\n  \"password\": \"SecurePass1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log out",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "logout"
+              ]
+            },
+            "description": "Clears the authentication cookie by setting it to expire. The route itself does not require authentication.\n\n**Success:** `200 OK`, empty response body. Use the same host as the login request so Postman updates the matching cookie."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Requested number of users. Optional; defaults to 10. The service defaults non-positive values to 10 and caps values above 50 at 50."
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "description": "Optional pagination cursor from the previous response's data.next_cursor. Leave disabled for the first page.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns a page of users. Requires the authentication cookie from **Log in** and an admin account.\n\n**Query parameters**\n- `limit` (integer, optional, default `10`): Requested page size. The service uses 10 when the value is non-positive and caps values above 50 at 50.\n- `cursor` (string, optional): Cursor returned as `next_cursor` by the previous page. Omit it for the first page.\n\n**Success:** `200 OK` with `data.users` and `data.next_cursor`. A malformed integer `limit` returns `400 Bad Request`; missing/invalid authentication or a non-admin account returns `401 Unauthorized`."
+          },
+          "response": []
+        },
+        {
+          "name": "Update my user",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Updates supported fields for the authenticated user. Requires the authentication cookie from **Log in**. The user ID is derived from the authenticated session; it is not sent in the URL or body.\n\n**Body fields** (all optional; include only fields to update)\n- `first_name` (string): 1\u201350 characters when provided.\n- `last_name` (string): 1\u201350 characters when provided.\n- `password` (string): 8\u201320 characters with uppercase, lowercase, digit, and one special character from `@$!%*?&`.\n\n**Success:** `204 No Content`. Invalid JSON or field values return `400 Bad Request`; missing/invalid authentication returns `401 Unauthorized`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Alexandra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Observability",
+      "item": [
+        {
+          "name": "Prometheus metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            },
+            "description": "Returns Prometheus metrics for the API Gateway.\n\n**Success:** `200 OK`, Prometheus text exposition format (`text/plain; version=0.0.4`)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080",
+      "type": "string"
+    }
+  ]
+}

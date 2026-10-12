@@ -2,17 +2,22 @@ package outbound
 
 import (
 	"context"
+	"strconv"
 
+	pb "github.com/LeonLow97/authify/grpc-proto/pb"
+	"github.com/LeonLow97/internal/contextstore"
 	"github.com/LeonLow97/internal/core/domain"
-	"github.com/LeonLow97/internal/ports"
-	pb "github.com/LeonLow97/proto"
+	"github.com/LeonLow97/internal/core/ports"
+	"google.golang.org/grpc/metadata"
 )
 
+const requestIDMetadataKey = "x-request-id"
+
 type userOutbound struct {
-	conn pb.UserServiceClient
+	conn pb.AuthifyServiceClient
 }
 
-func NewUserOutbound(conn pb.UserServiceClient) ports.UserOutbound {
+func NewUserOutbound(conn pb.AuthifyServiceClient) ports.UserOutbound {
 	return &userOutbound{
 		conn: conn,
 	}
@@ -24,9 +29,9 @@ func (r *userOutbound) Login(ctx context.Context, req domain.User) (*domain.User
 		Password: req.Password,
 	}
 
-	grpcResp, err := r.conn.Login(ctx, grpcReq)
+	grpcResp, err := r.conn.Login(withRequestIDMetadata(ctx), grpcReq)
 	if err != nil {
-		return nil, "", err
+		return nil, "", mapGRPCError(err)
 	}
 
 	return &domain.User{
@@ -46,8 +51,8 @@ func (r *userOutbound) SignUp(ctx context.Context, req domain.User) error {
 		LastName:  req.LastName,
 	}
 
-	_, err := r.conn.SignUp(ctx, grpcReq)
-	return err
+	_, err := r.conn.SignUp(withRequestIDMetadata(ctx), grpcReq)
+	return mapGRPCError(err)
 }
 
 func (r *userOutbound) GetUsers(ctx context.Context, limit int64, cursor string) ([]domain.User, string, error) {
@@ -56,9 +61,10 @@ func (r *userOutbound) GetUsers(ctx context.Context, limit int64, cursor string)
 		Cursor: cursor,
 	}
 
-	grpcResp, err := r.conn.GetUsers(ctx, grpcReq)
+	grpcCtx := withUserIDMetadata(withRequestIDMetadata(ctx))
+	grpcResp, err := r.conn.GetUsers(grpcCtx, grpcReq)
 	if err != nil {
-		return nil, "", err
+		return nil, "", mapGRPCError(err)
 	}
 
 	users := make([]domain.User, len(grpcResp.Users))
@@ -83,6 +89,23 @@ func (r *userOutbound) UpdateUser(ctx context.Context, req domain.User) error {
 		Password:  req.Password,
 	}
 
-	_, err := r.conn.UpdateUser(ctx, grpcReq)
-	return err
+	grpcCtx := withUserIDMetadata(withRequestIDMetadata(ctx))
+	_, err := r.conn.UpdateUser(grpcCtx, grpcReq)
+	return mapGRPCError(err)
+}
+
+func withUserIDMetadata(ctx context.Context) context.Context {
+	userID, ok := contextstore.UserIDFromContext(ctx)
+	if !ok {
+		return ctx
+	}
+	return metadata.AppendToOutgoingContext(ctx, "user_id", strconv.FormatInt(userID, 10))
+}
+
+func withRequestIDMetadata(ctx context.Context) context.Context {
+	requestID, ok := contextstore.RequestIDFromContext(ctx)
+	if !ok || requestID == "" {
+		return ctx
+	}
+	return metadata.AppendToOutgoingContext(ctx, requestIDMetadataKey, requestID)
 }

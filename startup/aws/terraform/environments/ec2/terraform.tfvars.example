@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and set the three secrets before applying.
+# Terraform state also contains these values, so keep both files private.
+
+master_password  = ""
+authify_password = ""
+jwt_secret       = ""
+
+# Leave blank to create a host-only authentication cookie.
+jwt_domain = ""

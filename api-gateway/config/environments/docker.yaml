@@ -1,0 +1,24 @@
+mode: docker
+
+server:
+  base_url: 0.0.0.0
+  port: 8080
+
+authify_service:
+  base_url: authify-service
+  port: 50051
+
+auth_jwt_token:
+  name: authify_token
+  secret: 493TKVrB0r5vY0hqU3OI28iDQJKhWDkR37OXtgSn1tife3z
+  max_age: 3600
+  domain: host.docker.internal
+  secure: false
+  http_only: true
+  path: '/'
+
+redis:
+  port: 6379
+  address: redis
+  password: ''
+  database_index: 0

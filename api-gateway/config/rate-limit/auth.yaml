@@ -1,0 +1,12 @@
+auth:
+  login:
+    burst:
+      key: 'login:burst:%s:%s'
+      rate_limit:
+        window: 1s
+        max_requests: 1
+    fail:
+      key: 'login:fail:%s:%s'
+      rate_limit:
+        window: 60s
+        max_requests: 10

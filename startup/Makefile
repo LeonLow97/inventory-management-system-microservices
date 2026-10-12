@@ -1,140 +1,244 @@
 export PATH := $(PATH):$(shell go env GOPATH)/bin
-PROJECT_ROOT := $(abspath $(CURDIR)/..)
 
-# ====================================
-# Common Commands
-# ====================================
-.PHONY: proto
-# To generate protobuf code for both api-gateway and user-service
-proto:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+.DEFAULT_GOAL := help
 
-	cd $(PROJECT_ROOT)/api-gateway && protoc --go_out=. --go-grpc_out=. proto/users.proto
-	cd $(PROJECT_ROOT)/user-service && protoc --go_out=. --go-grpc_out=. proto/users.proto
+STARTUP_DIR := $(CURDIR)
+PROJECT_ROOT := $(abspath $(STARTUP_DIR)/..)
+DOCKER_COMPOSE_FILE := $(STARTUP_DIR)/docker/docker-compose.dev.yaml
+TERRAFORM_DIR := $(STARTUP_DIR)/aws/terraform/environments/ec2
+TFVARS_FILE ?= $(TERRAFORM_DIR)/terraform.tfvars
+SCHEMA_FILE ?= $(PROJECT_ROOT)/authify-service/schema/users.sql
+IMAGE_TAG ?= local-$(shell date +%Y%m%d%H%M%S)
+K6_SCRIPT := $(STARTUP_DIR)/load-test/login.js
+K6_BASE_URL ?= http://localhost:8080
+export K6_BASE_URL K6_USERS
+INGRESS_NGINX_MANIFEST := https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/kind/deploy.yaml
 
-# ====================================
-# Local Run
-# ====================================
+ENV ?= local
 SERVICE ?= api-gateway
-.PHONY: run
-# Run `make run SERVICE=api-gateway` to run api-gateway
-# Run `make run SERVICE=user-service` to run user-service
+
+# -----------------------------------------------------------------------------
+# Entry points
+# -----------------------------------------------------------------------------
+.PHONY: help run stop
+
+help:
+	@printf '%s\n' \
+		'Run an environment:' \
+		'  make -C startup run ENV=local SERVICE=api-gateway' \
+		'  make -C startup run ENV=local SERVICE=authify-service' \
+		'  make -C startup run ENV=docker' \
+		'  make -C startup run ENV=kind' \
+		'' \
+		'Environment commands:' \
+		'  make -C startup docker-up       Start Docker Compose in the background' \
+		'  make -C startup docker-down     Stop Docker Compose' \
+		'  make -C startup kind-up         Deploy to the active Kind cluster' \
+		'  make -C startup kind-port-forward  Expose the Kind API at localhost:8080' \
+		'  make -C startup local-load-test|docker-load-test|kind-load-test (see docs/k6-load-test.md)' \
+		'  make -C startup kind-down       Remove the Authify namespace and local database volume' \
+		'  make -C startup stop ENV=docker|kind' \
+		'' \
+		'AWS with Terraform:' \
+		'  make -C startup aws-ec2-plan   Preview the AWS infrastructure changes' \
+		'  make -C startup aws-ec2-up     Create the stack, publish images, and wait for readiness' \
+		'  make -C startup aws-ec2-down   Delete the Terraform-managed AWS stack' \
+		'' \
+		'Utilities:' \
+		'  make -C startup proto' \
+		'  make -C startup local-redis|local-prometheus|local-grafana'
+
 run:
-ifeq ($(SERVICE),api-gateway)
-	$(MAKE) -C $(PROJECT_ROOT)/api-gateway run
+ifeq ($(ENV),local)
+	$(MAKE) local-run SERVICE=$(SERVICE)
+else ifeq ($(ENV),docker)
+	$(MAKE) docker-run
+else ifeq ($(ENV),kind)
+	$(MAKE) kind-run
+else
+$(error Unsupported ENV '$(ENV)'. Choose local, docker, or kind.)
 endif
-ifeq ($(SERVICE),user-service)
-	$(MAKE) -C $(PROJECT_ROOT)/user-service run
+
+stop:
+ifeq ($(ENV),docker)
+	$(MAKE) docker-down
+else ifeq ($(ENV),kind)
+	$(MAKE) kind-down
+else ifeq ($(ENV),local)
+	@echo 'Local services run in the foreground. Stop them with Ctrl+C.'
+else
+$(error Unsupported ENV '$(ENV)'. Choose local, docker, or kind.)
 endif
 
-.PHONY: prom
-# To view prometheus dashboard, go to http://localhost:9090/metrics
-prom:
-	chmod +x ./prometheus/prometheus.yml
-	cd prometheus && prometheus --config.file=prometheus.yml
+# -----------------------------------------------------------------------------
+# Shared tools
+# -----------------------------------------------------------------------------
+.PHONY: proto aws-cli-install
 
-.PHONY: grafana
-# To view grafana dashboard, go to http://localhost:3000 (username: admin, password: admin)
-grafana:
-	brew install grafana
-	brew services start grafana
+proto:
+	$(MAKE) -C $(PROJECT_ROOT)/grpc-proto generate
 
-.PHONY: redis-server
-# Run `redis-cli` to interact with redis server
-redis-server:
-	brew install redis
-	brew services start redis
-
-# ====================================
-# Docker
-# ====================================
-.PHONY: docker-build
-docker-build:
-	docker-compose -f ./docker/docker-compose.dev.yaml down
-	docker-compose -f ./docker/docker-compose.dev.yaml up --build -d
-
-.PHONY: docker-down
-docker-down:
-	docker-compose -f ./docker/docker-compose.dev.yaml down
-
-.PHONY: docker-seed
-docker-seed:
-	docker exec -i user-postgres psql -U authify -d authify_users_db < $(PROJECT_ROOT)/user-service/schema/dummy.sql
-
-# ====================================
-# Local Kubernetes with Docker Desktop
-# ====================================
-.PHONY: k8s-apply
-k8s-apply:
-	./scripts/localhost/push-local-docker-registry.sh
-
-	kubectl create namespace authify || true
-	kubectl config set-context --current --namespace=authify
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-
-	kubectl apply -f ./k8s
-
-	$(MAKE) -C $(PROJECT_ROOT)/api-gateway k8s-apply
-	$(MAKE) -C $(PROJECT_ROOT)/user-service k8s-apply
-
-.PHONY: k8s-delete
-k8s-delete:
-	kubectl delete -f ./k8s || true
-	$(MAKE) -C $(PROJECT_ROOT)/api-gateway k8s-delete || true
-	$(MAKE) -C $(PROJECT_ROOT)/user-service k8s-delete || true
-
-# ====================================
-# AWS Common Commands
-# ====================================
-.PHONY: aws-cli-install
 aws-cli-install:
 	brew install awscli
 	brew install awsebcli
 	aws --version
 	eb --version
 
+# -----------------------------------------------------------------------------
+# Local processes and tools
+# -----------------------------------------------------------------------------
+.PHONY: local-run local-redis local-prometheus local-grafana
+.PHONY: run-local redis-server prom grafana
 
-# ====================================
-# AWS Elastic Beanstalk
-# ====================================
+local-run:
+ifeq ($(SERVICE),api-gateway)
+	$(MAKE) -C $(PROJECT_ROOT)/api-gateway run MODE=development
+else ifeq ($(SERVICE),authify-service)
+	$(MAKE) -C $(PROJECT_ROOT)/authify-service run MODE=development
+else
+$(error Unsupported SERVICE '$(SERVICE)'. Use api-gateway or authify-service.)
+endif
 
+local-redis:
+	brew install redis
+	brew services start redis
 
+local-prometheus:
+	cd $(STARTUP_DIR)/observability && prometheus --config.file=prometheus.yml
 
-# ====================================
-# AWS EC2
-# ====================================
-# ./vpc/vpc.sh&& ./rds/rds.sh && ./iam/iam.sh && ./s3/s3.sh && ./ec2/bastion.sh
-# ./ec2/bastion-clean.sh && ./s3/s3-clean.sh && ./iam/iam-clean.sh && ./rds/rds-clean.sh  && ./vpc/vpc-clean.sh
+local-grafana:
+	brew install grafana
+	brew services start grafana
 
+# Compatibility aliases for existing commands.
+run-local: local-run
+redis-server: local-redis
+prom: local-prometheus
+grafana: local-grafana
 
-# ec2_full_deploy:
-# 	sh ./aws-cli/common/remove-variables.sh
-# 	sh ./aws-cli/common/ecr.sh
-# 	make ec2_deploy
-# ec2_deploy:
-# 	sh ./aws-cli/ec2/ec2.sh
-# 	@echo "Successfully Deployed IMS to AWS EC2!"
-# ec2_clean:
-# 	sh ./aws-cli/ec2/ec2-cleanup.sh
-# 	sh ./aws-cli/common/ecr-cleanup.sh
-# 	@echo "Cleanup Completed!"
+# -----------------------------------------------------------------------------
+# Docker Compose
+# -----------------------------------------------------------------------------
+.PHONY: docker-run docker-up docker-down docker-build run-docker
 
-# ecr_push:
-# 	sh ./aws-cli/common/ecr.sh
-# ecr_clean:
-# 	sh ./aws-cli/common/ecr-cleanup.sh
+docker-run:
+	docker-compose -f $(DOCKER_COMPOSE_FILE) up --build
 
-# terraform_ec2_key_pairs:
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ1
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ2
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_API_GATEWAY_KEY_PAIR_AZ1
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_API_GATEWAY_KEY_PAIR_AZ2
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_AUTH_SERVICE_KEY_PAIR_AZ1
-# 	rm -f ./terraform/modules/ec2/.ssh/IMS_AUTH_SERVICE_KEY_PAIR_AZ2
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ1 -N ""
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_BASTION_AZ2 -N ""
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_API_GATEWAY_KEY_PAIR_AZ1 -N ""
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_API_GATEWAY_KEY_PAIR_AZ2 -N ""
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_AUTH_SERVICE_KEY_PAIR_AZ1 -N ""
-# 	ssh-keygen -t rsa -b 4096 -f ./terraform/modules/ec2/.ssh/IMS_AUTH_SERVICE_KEY_PAIR_AZ2 -N ""
+docker-up:
+	docker-compose -f $(DOCKER_COMPOSE_FILE) up --build -d
+
+docker-down:
+	docker-compose -f $(DOCKER_COMPOSE_FILE) down
+
+# Compatibility aliases for existing commands.
+docker-build: docker-up
+run-docker: docker-run
+
+# -----------------------------------------------------------------------------
+# Kubernetes on Kind
+# -----------------------------------------------------------------------------
+.PHONY: kind-context-check kind-images kind-infrastructure kind-database kind-services
+.PHONY: kind-up kind-run kind-port-forward kind-down
+.PHONY: load-test local-load-test docker-load-test kind-load-test
+.PHONY: k8s-context-check k8s-apply k8s-port-forward k8s-delete
+
+kind-context-check:
+	@context="$$(kubectl config current-context)"; \
+	case "$$context" in \
+		kind-*) echo "Using Kind context: $$context" ;; \
+		*) echo "Current context '$$context' is not a Kind context. Switch kubectl to Kind first." >&2; exit 1 ;; \
+	esac
+
+kind-up:
+	$(MAKE) kind-images
+	$(MAKE) kind-infrastructure
+	$(MAKE) kind-database
+	$(MAKE) kind-services
+
+kind-images: kind-context-check
+	./scripts/kind/prepare-kind-images.sh
+
+kind-infrastructure: kind-context-check
+	kubectl apply -f ./kubernetes/kind/namespace.yml
+	kubectl apply -f ./kubernetes/kind/storageclass.yml
+	kubectl apply -f $(INGRESS_NGINX_MANIFEST)
+	kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx --timeout=180s
+	kubectl apply -f ./kubernetes/kind/redis.yml
+	kubectl rollout status deployment/redis -n authify --timeout=180s
+
+kind-database: kind-context-check
+	kubectl apply -f $(PROJECT_ROOT)/authify-service/k8s/configmap.yml \
+		-f $(PROJECT_ROOT)/authify-service/k8s/secret.yml \
+		-f $(PROJECT_ROOT)/authify-service/k8s/headless-clusterip.yml \
+		-f $(PROJECT_ROOT)/authify-service/k8s/persistent-volume.yml \
+		-f $(PROJECT_ROOT)/authify-service/k8s/statefulset.yml
+	kubectl rollout status statefulset/user-postgres-statefulset -n authify --timeout=180s
+	kubectl create configmap user-schema -n authify \
+		--from-file=users.sql=$(PROJECT_ROOT)/authify-service/schema/users.sql \
+		--dry-run=client -o yaml | kubectl apply -f -
+	kubectl delete job user-schema-init -n authify --ignore-not-found
+	kubectl apply -f $(PROJECT_ROOT)/authify-service/k8s/schema-init-job.yml
+	kubectl wait --for=condition=complete job/user-schema-init -n authify --timeout=180s
+
+kind-services: kind-context-check
+	kubectl apply -f $(PROJECT_ROOT)/authify-service/k8s/clusterip.yml \
+		-f $(PROJECT_ROOT)/authify-service/k8s/deployment.yml
+	kubectl rollout status deployment/user-deployment -n authify --timeout=180s
+	kubectl apply -f $(PROJECT_ROOT)/api-gateway/k8s/clusterip.yml \
+		-f $(PROJECT_ROOT)/api-gateway/k8s/deployment.yml
+	kubectl rollout status deployment/api-gateway-deployment -n authify --timeout=180s
+	kubectl apply -f ./kubernetes/kind/ingress-resource.yml
+
+kind-run: kind-up
+	$(MAKE) kind-port-forward
+
+kind-port-forward: kind-context-check
+	kubectl port-forward --address 127.0.0.1 -n ingress-nginx service/ingress-nginx-controller 8080:80
+
+load-test:
+	@command -v k6 >/dev/null 2>&1 || { echo 'k6 is required. Install it with: brew install k6' >&2; exit 1; }
+	@test -n "$${K6_USERS:-}" || { echo 'Set K6_USERS to a JSON array of five unique test accounts. See docs/k6-load-test.md.' >&2; exit 1; }
+	@curl --fail --silent --show-error "$(K6_BASE_URL)/health/readiness" >/dev/null || { echo 'API is not reachable at $(K6_BASE_URL). Start the selected environment and, for Kind, keep port forwarding active.' >&2; exit 1; }
+	k6 run "$(K6_SCRIPT)"
+
+local-load-test docker-load-test: load-test
+
+kind-load-test: kind-context-check
+	$(MAKE) load-test
+
+kind-down: kind-context-check
+	kubectl delete namespace authify --ignore-not-found --wait=true
+	kubectl delete -f $(PROJECT_ROOT)/authify-service/k8s/persistent-volume.yml --ignore-not-found
+	kubectl delete -f ./kubernetes/kind/storageclass.yml --ignore-not-found
+
+# Compatibility aliases for existing commands.
+k8s-context-check: kind-context-check
+k8s-apply: kind-up
+k8s-port-forward: kind-port-forward
+k8s-delete: kind-down
+
+# -----------------------------------------------------------------------------
+# AWS infrastructure with Terraform
+# -----------------------------------------------------------------------------
+.PHONY: terraform-init aws-ec2-plan aws-ec2-up aws-ec2-down
+
+terraform-init:
+	terraform -chdir=$(TERRAFORM_DIR) init
+
+aws-ec2-plan:
+	$(MAKE) terraform-init
+	@test -f "$(TFVARS_FILE)" || { echo "Missing $(TFVARS_FILE). Copy terraform.tfvars.example and set the required secrets." >&2; exit 1; }
+	terraform -chdir=$(TERRAFORM_DIR) plan -var-file="$(TFVARS_FILE)" -var="schema_file=$(SCHEMA_FILE)" -var="image_tag=$(IMAGE_TAG)"
+
+aws-ec2-up:
+	$(MAKE) terraform-init
+	@test -f "$(TFVARS_FILE)" || { echo "Missing $(TFVARS_FILE). Copy terraform.tfvars.example and set the required secrets." >&2; exit 1; }
+	terraform -chdir=$(TERRAFORM_DIR) apply -var-file="$(TFVARS_FILE)" -var="schema_file=$(SCHEMA_FILE)" -var="image_tag=$(IMAGE_TAG)"
+	bash "$(STARTUP_DIR)/aws/terraform/scripts/push-images.sh" "$(IMAGE_TAG)"
+	bash "$(STARTUP_DIR)/aws/terraform/scripts/wait-for-readiness.sh"
+	@printf 'API is ready at %s\n' "$$(terraform -chdir=$(TERRAFORM_DIR) output -raw api_base_url)"
+
+aws-ec2-down:
+	$(MAKE) terraform-init
+	@test -f "$(TFVARS_FILE)" || { echo "Missing $(TFVARS_FILE). Keep terraform.tfvars until destroy has completed." >&2; exit 1; }
+	terraform -chdir=$(TERRAFORM_DIR) destroy -var-file="$(TFVARS_FILE)" -var="schema_file=$(SCHEMA_FILE)"

@@ -1,12 +1,17 @@
 # ---- Builder Stage ----
-FROM golang:1.25.3-alpine AS builder
+FROM golang:1.27.1-alpine AS builder
 
-WORKDIR /app
+WORKDIR /workspace
 
-COPY go.mod go.sum ./
+COPY grpc-proto/go.mod ./grpc-proto/go.mod
+COPY api-gateway/go.mod api-gateway/go.sum ./api-gateway/
+WORKDIR /workspace/api-gateway
 RUN go mod download
 
-COPY . .
+WORKDIR /workspace
+COPY grpc-proto/ ./grpc-proto/
+COPY api-gateway/ ./api-gateway/
+WORKDIR /workspace/api-gateway
 
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -o apiGateway ./cmd/api
@@ -16,9 +21,9 @@ FROM alpine:3.22.2
 
 WORKDIR /app
 
-COPY --from=builder /app/apiGateway .
-COPY --from=builder /app/config ./config
+COPY --from=builder /workspace/api-gateway/apiGateway .
+COPY --from=builder /workspace/api-gateway/config ./config
 
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["./apiGateway"]

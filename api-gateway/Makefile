@@ -1,11 +1,12 @@
 .PHONY: run
+MODE ?= development
 run:
-	go run ./cmd/api/*.go
+	MODE=$(MODE) go run ./cmd/api
 
-.PHONY: k8s-apply
-k8s-apply:
-	kubectl apply -f ./k8s
+.PHONY: test
+test:
+	go test ./...
 
-.PHONY: k8s-delete
-k8s-delete:
-	kubectl delete -f ./k8s
+.PHONY: lint
+lint:
+	golangci-lint run ./...

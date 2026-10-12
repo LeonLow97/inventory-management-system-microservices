@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+  namespace: authify
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      authify: user
+  template:
+    metadata:
+      labels:
+        authify: user
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: user
+          image: localhost:5050/authify-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 50051
+          readinessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 5
+          livenessProbe:
+            grpc:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 5
+          env:
+            - name: MODE
+              value: kubernetes
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: user-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: user-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: user-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: user-configmap
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: user-configmap
+                  key: POSTGRES_DB
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0

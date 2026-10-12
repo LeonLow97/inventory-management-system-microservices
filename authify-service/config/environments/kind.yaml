@@ -1,0 +1,22 @@
+mode: kubernetes
+
+server:
+  name: user-clusterip
+  port: 50051
+
+jwt:
+  secret_key: 493TKVrB0r5vY0hqU3OI28iDQJKhWDkR37OXtgSn1tife3z
+  expiry: 15 # in minutes
+
+postgres:
+  user: FROM_K8S
+  password: FROM_K8S
+  host: FROM_K8S
+  port: 5432
+  db: FROM_K8S
+
+redis:
+  address: redis
+  port: 6379
+  password:
+  database_index: 0

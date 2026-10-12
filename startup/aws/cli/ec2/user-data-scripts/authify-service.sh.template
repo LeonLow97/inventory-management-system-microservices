@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -euo pipefail
+
+required_ssm_parameter() {
+  local name="$1"
+  local decrypt="${2:-false}"
+  local args=(--name "${name}" --query 'Parameter.Value' --output text)
+
+  if [[ "${decrypt}" == "true" ]]; then
+    args+=(--with-decryption)
+  fi
+
+  aws ssm get-parameter "${args[@]}"
+}
+
+optional_ssm_parameter() {
+  local name="$1"
+  local decrypt="${2:-false}"
+  local args=(--name "${name}" --query 'Parameter.Value' --output text)
+
+  if [[ "${decrypt}" == "true" ]]; then
+    args+=(--with-decryption)
+  fi
+
+  aws ssm get-parameter "${args[@]}" 2>/dev/null || true
+}
+
+METADATA_TOKEN="$(curl -fsS -X PUT http://169.254.169.254/latest/api/token \
+  -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')"
+REGION="$(curl -fsS -H "X-aws-ec2-metadata-token: ${METADATA_TOKEN}" \
+  http://169.254.169.254/latest/meta-data/placement/region)"
+export AWS_DEFAULT_REGION="${REGION}"
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query 'Account' --output text)"
+DB_NAME="$(required_ssm_parameter /authify/rds/db-name)"
+RDS_ENDPOINT="$(required_ssm_parameter /authify/rds/endpoint)"
+AUTHIFY_USER="$(required_ssm_parameter /authify/rds/user)"
+AUTHIFY_USER_PASSWORD="$(required_ssm_parameter /authify/rds/authify-service-password true)"
+REDIS_ADDRESS="$(required_ssm_parameter /authify/elasticache/endpoint)"
+# Temporary workaround: this Redis cluster does not have AUTH enabled yet.
+# If we keep pulling the old SSM password here, the authify service sends AUTH and exits.
+# REDIS_PASSWORD="$(optional_ssm_parameter /authify/elasticache/password true)"
+JWT_SECRET_KEY="$(required_ssm_parameter /authify/auth/jwt-secret true)"
+ECR_AUTHIFY_SERVICE_IMAGE="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_AUTHIFY_REPOSITORY}:${DOCKER_AUTHIFY_SERVICE_IMAGE_TAG}"
+
+if ! command -v docker >/dev/null 2>&1; then
+  sudo yum install -y docker
+fi
+sudo systemctl enable --now docker
+
+aws ecr get-login-password --region "${REGION}" \
+  | sudo docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+
+sudo docker pull "${ECR_AUTHIFY_SERVICE_IMAGE}"
+sudo docker rm -f authify-service >/dev/null 2>&1 || true
+
+sudo docker run -d \
+  --name authify-service \
+  --restart=always \
+  -p ${PORT_AUTHIFY_SERVICE}:${PORT_AUTHIFY_SERVICE} \
+  -e MODE=production \
+  -e SERVER_PORT=${PORT_AUTHIFY_SERVICE} \
+  -e POSTGRES_HOST="${RDS_ENDPOINT}" \
+  -e POSTGRES_USER="${AUTHIFY_USER}" \
+  -e POSTGRES_PASSWORD="${AUTHIFY_USER_PASSWORD}" \
+  -e POSTGRES_PORT=${PORT_POSTGRESQL} \
+  -e POSTGRES_DB="${DB_NAME}" \
+  -e REDIS_ADDRESS="${REDIS_ADDRESS}" \
+  -e REDIS_PORT=6379 \
+  -e JWT_SECRET_KEY="${JWT_SECRET_KEY}" \
+  "${ECR_AUTHIFY_SERVICE_IMAGE}"
+
+for attempt in $(seq 1 60); do
+  if (exec 3<>"/dev/tcp/127.0.0.1/${PORT_AUTHIFY_SERVICE}") 2>/dev/null; then
+    echo "Authify Service is accepting gRPC connections."
+    exit 0
+  fi
+  sleep 5
+done
+
+sudo docker logs authify-service >&2 || true
+echo "Authify Service did not open port ${PORT_AUTHIFY_SERVICE} within 5 minutes." >&2
+exit 1

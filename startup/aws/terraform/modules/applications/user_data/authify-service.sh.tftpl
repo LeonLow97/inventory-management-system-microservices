@@ -1,0 +1,163 @@
+#!/bin/bash
+set -euo pipefail
+
+export AWS_DEFAULT_REGION="${region}"
+
+required_parameter() {
+  local name="$1"
+  local decrypt="$2"
+  local value
+
+  for attempt in $(seq 1 30); do
+    if [[ "$decrypt" == "true" ]]; then
+      if value="$(aws ssm get-parameter --name "$name" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null)"; then
+        printf '%s\n' "$value"
+        return 0
+      fi
+    elif value="$(aws ssm get-parameter --name "$name" --query 'Parameter.Value' --output text 2>/dev/null)"; then
+      printf '%s\n' "$value"
+      return 0
+    fi
+
+    sleep 10
+  done
+
+  echo "Could not read required SSM parameter $name." >&2
+  return 1
+}
+
+DB_NAME="$(required_parameter "${parameter_names.database_name}" false)"
+DB_HOST="$(required_parameter "${parameter_names.database_address}" false)"
+DB_MASTER_USER="$(required_parameter "${parameter_names.master_username}" false)"
+DB_MASTER_PASSWORD="$(required_parameter "${parameter_names.master_password}" true)"
+DB_USER="$(required_parameter "${parameter_names.authify_username}" false)"
+DB_PASSWORD="$(required_parameter "${parameter_names.authify_password}" true)"
+REDIS_ADDRESS="$(required_parameter "${parameter_names.redis_address}" false)"
+JWT_SECRET_KEY="$(required_parameter "${parameter_names.jwt_secret}" true)"
+
+dnf install -y docker postgresql15
+systemctl enable --now docker
+
+wait_for_database() {
+  local database="$1"
+  local username="$2"
+  local password="$3"
+
+  for attempt in $(seq 1 120); do
+    if PGPASSWORD="$password" psql -h "$DB_HOST" -p "${postgres_port}" -U "$username" -d "$database" -c 'SELECT 1' >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 15
+  done
+
+  echo "PostgreSQL did not become available." >&2
+  return 1
+}
+
+ensure_database_schema() {
+  wait_for_database postgres "$DB_MASTER_USER" "$DB_MASTER_PASSWORD"
+
+  PGPASSWORD="$DB_MASTER_PASSWORD" psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "${postgres_port}" -U "$DB_MASTER_USER" -d postgres \
+    -v authify_user="$DB_USER" \
+    -v authify_user_password="$DB_PASSWORD" <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'authify_user', :'authify_user_password')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'authify_user')
+\gexec
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'authify_user', :'authify_user_password')
+\gexec
+SQL
+
+  PGPASSWORD="$DB_MASTER_PASSWORD" psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "${postgres_port}" -U "$DB_MASTER_USER" -d postgres \
+    -v db_name="$DB_NAME" \
+    -v authify_user="$DB_USER" <<'SQL'
+SELECT format('CREATE DATABASE %I OWNER %I', :'db_name', :'authify_user')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name')
+\gexec
+SQL
+
+  PGPASSWORD="$DB_MASTER_PASSWORD" psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "${postgres_port}" -U "$DB_MASTER_USER" -d "$DB_NAME" \
+    -v db_name="$DB_NAME" \
+    -v authify_user="$DB_USER" <<'SQL'
+SELECT format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I', :'db_name', :'authify_user')
+\gexec
+SELECT format('GRANT ALL PRIVILEGES ON SCHEMA public TO %I', :'authify_user')
+\gexec
+SELECT format('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO %I', :'authify_user')
+\gexec
+SELECT format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO %I', :'authify_user')
+\gexec
+SELECT format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO %I', :'authify_user')
+\gexec
+SQL
+
+  apply_schema_if_missing
+}
+
+apply_schema_if_missing() {
+  local users_table
+  users_table="$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${postgres_port}" -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT to_regclass('public.users')" | tr -d '[:space:]')"
+
+  if [[ "$users_table" != "users" ]]; then
+    aws s3 cp "s3://${schema_bucket_name}/${schema_object_key}" /tmp/users.sql --no-cli-pager
+    PGPASSWORD="$DB_PASSWORD" psql -v ON_ERROR_STOP=1 -h "$DB_HOST" -p "${postgres_port}" -U "$DB_USER" -d "$DB_NAME" -f /tmp/users.sql
+  fi
+}
+
+if [[ "${initialize_database}" == "true" ]]; then
+  ensure_database_schema
+else
+  for attempt in $(seq 1 120); do
+    users_table="$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "${postgres_port}" -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT to_regclass('public.users')" 2>/dev/null | tr -d '[:space:]' || true)"
+    if [[ "$users_table" == "users" ]]; then
+      break
+    fi
+    sleep 15
+  done
+
+  if [[ "$users_table" != "users" ]]; then
+    echo "Authify database schema was not initialized in the first Availability Zone." >&2
+    exit 1
+  fi
+fi
+
+pull_image() {
+  for attempt in $(seq 1 120); do
+    if aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${ecr_registry}" >/dev/null 2>&1 && docker pull "${image_uri}"; then
+      return 0
+    fi
+    sleep 15
+  done
+
+  echo "Could not pull Authify Service image ${image_uri}." >&2
+  return 1
+}
+
+pull_image
+docker rm -f authify-service >/dev/null 2>&1 || true
+docker run -d \
+  --name authify-service \
+  --restart=always \
+  -p "${service_port}:${service_port}" \
+  -e MODE=production \
+  -e SERVER_PORT="${service_port}" \
+  -e POSTGRES_HOST="$DB_HOST" \
+  -e POSTGRES_USER="$DB_USER" \
+  -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+  -e POSTGRES_PORT="${postgres_port}" \
+  -e POSTGRES_DB="$DB_NAME" \
+  -e REDIS_ADDRESS="$REDIS_ADDRESS" \
+  -e REDIS_PORT="${redis_port}" \
+  -e JWT_SECRET_KEY="$JWT_SECRET_KEY" \
+  "${image_uri}"
+
+for attempt in $(seq 1 60); do
+  if (exec 3<>"/dev/tcp/127.0.0.1/${service_port}") 2>/dev/null; then
+    echo "Authify Service is accepting gRPC connections."
+    exit 0
+  fi
+  sleep 5
+done
+
+docker logs authify-service >&2 || true
+echo "Authify Service did not open port ${service_port}." >&2
+exit 1
