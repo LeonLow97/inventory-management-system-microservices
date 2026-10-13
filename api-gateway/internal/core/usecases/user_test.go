@@ -175,3 +175,7 @@ func TestServiceUpdateUser(t *testing.T) {
 		})
 	}
 }
+
+func (s *userOutboundStub) GetCurrentUser(context.Context) (*domain.User, error) {
+	return s.loginUser, s.loginErr
+}

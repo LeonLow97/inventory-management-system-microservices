@@ -11,6 +11,7 @@ service AuthifyService {
 
     rpc UpdateUser(UpdateUserRequest) returns (google.protobuf.Empty);
     rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
+    rpc GetCurrentUser(google.protobuf.Empty) returns (User);
 }
 
 message LoginRequest {

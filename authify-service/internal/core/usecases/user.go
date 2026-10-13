@@ -11,6 +11,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// GetCurrentUser resolves only the identity supplied by the authenticated transport.
+func (s service) GetCurrentUser(ctx context.Context, userID int64) (*domain.User, error) {
+	if userID <= 0 {
+		return nil, coreerrors.ErrInvalidCredentials
+	}
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get current user: %w", err)
+	}
+	if !user.Active {
+		return nil, coreerrors.ErrInactiveUser
+	}
+	return user, nil
+}
+
 func (s service) GetUsers(ctx context.Context, adminUserID int64, limit int64, cursorStr string) ([]domain.User, string, error) {
 	logger := s.logger.WithContext(ctx)
 	// Check if user is an admin user

@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AuthifyService_Login_FullMethodName      = "/AuthifyService/Login"
-	AuthifyService_SignUp_FullMethodName     = "/AuthifyService/SignUp"
-	AuthifyService_UpdateUser_FullMethodName = "/AuthifyService/UpdateUser"
-	AuthifyService_GetUsers_FullMethodName   = "/AuthifyService/GetUsers"
+	AuthifyService_Login_FullMethodName          = "/AuthifyService/Login"
+	AuthifyService_SignUp_FullMethodName         = "/AuthifyService/SignUp"
+	AuthifyService_UpdateUser_FullMethodName     = "/AuthifyService/UpdateUser"
+	AuthifyService_GetUsers_FullMethodName       = "/AuthifyService/GetUsers"
+	AuthifyService_GetCurrentUser_FullMethodName = "/AuthifyService/GetCurrentUser"
 )
 
 // AuthifyServiceClient is the client API for AuthifyService service.
@@ -34,6 +35,7 @@ type AuthifyServiceClient interface {
 	SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersResponse, error)
+	GetCurrentUser(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*User, error)
 }
 
 type authifyServiceClient struct {
@@ -80,6 +82,15 @@ func (c *authifyServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest
 	return out, nil
 }
 
+func (c *authifyServiceClient) GetCurrentUser(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*User, error) {
+	out := new(User)
+	err := c.cc.Invoke(ctx, AuthifyService_GetCurrentUser_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthifyServiceServer is the server API for AuthifyService service.
 // All implementations must embed UnimplementedAuthifyServiceServer
 // for forward compatibility
@@ -88,6 +99,7 @@ type AuthifyServiceServer interface {
 	SignUp(context.Context, *SignUpRequest) (*emptypb.Empty, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error)
+	GetCurrentUser(context.Context, *emptypb.Empty) (*User, error)
 	mustEmbedUnimplementedAuthifyServiceServer()
 }
 
@@ -106,6 +118,9 @@ func (UnimplementedAuthifyServiceServer) UpdateUser(context.Context, *UpdateUser
 }
 func (UnimplementedAuthifyServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
+}
+func (UnimplementedAuthifyServiceServer) GetCurrentUser(context.Context, *emptypb.Empty) (*User, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCurrentUser not implemented")
 }
 func (UnimplementedAuthifyServiceServer) mustEmbedUnimplementedAuthifyServiceServer() {}
 
@@ -192,6 +207,24 @@ func _AuthifyService_GetUsers_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthifyService_GetCurrentUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthifyServiceServer).GetCurrentUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthifyService_GetCurrentUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthifyServiceServer).GetCurrentUser(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthifyService_ServiceDesc is the grpc.ServiceDesc for AuthifyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -214,6 +247,10 @@ var AuthifyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsers",
 			Handler:    _AuthifyService_GetUsers_Handler,
+		},
+		{
+			MethodName: "GetCurrentUser",
+			Handler:    _AuthifyService_GetCurrentUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

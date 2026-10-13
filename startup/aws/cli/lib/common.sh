@@ -31,7 +31,6 @@ awscli_load_config() {
   # Pin commands without an explicit --region to the project configuration.
   export AWS_REGION="$REGION"
   export AWS_DEFAULT_REGION="$REGION"
-  AWSCLI_ROOT="$root_dir"
 }
 
 awscli_run_allowing_error_code() {

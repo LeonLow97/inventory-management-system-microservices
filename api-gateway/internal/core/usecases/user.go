@@ -10,6 +10,7 @@ import (
 )
 
 type User interface {
+	GetCurrentUser(ctx context.Context) (*domain.User, error)
 	Login(ctx context.Context, req domain.User, clientIP string) (*domain.User, string, error)
 	SignUp(ctx context.Context, req domain.User) error
 
@@ -29,6 +30,10 @@ func NewUserService(userRepo ports.UserOutbound, loginAttempts ports.LoginAttemp
 		loginAttempts: loginAttempts,
 		logger:        logger,
 	}
+}
+
+func (s *service) GetCurrentUser(ctx context.Context) (*domain.User, error) {
+	return s.userRepo.GetCurrentUser(ctx)
 }
 
 func (s *service) Login(ctx context.Context, req domain.User, clientIP string) (*domain.User, string, error) {

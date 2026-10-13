@@ -14,18 +14,22 @@ import (
 )
 
 type authifyServiceClientStub struct {
-	loginRequest     *pb.LoginRequest
-	loginResponse    *pb.LoginResponse
-	loginErr         error
-	signUpRequest    *pb.SignUpRequest
-	signUpErr        error
-	getUsersRequest  *pb.GetUsersRequest
-	getUsersContext  context.Context
-	getUsersResponse *pb.GetUsersResponse
-	getUsersErr      error
-	updateRequest    *pb.UpdateUserRequest
-	updateContext    context.Context
-	updateErr        error
+	currentUserContext  context.Context
+	currentUserCalls    int
+	currentUserResponse *pb.User
+	currentUserErr      error
+	loginRequest        *pb.LoginRequest
+	loginResponse       *pb.LoginResponse
+	loginErr            error
+	signUpRequest       *pb.SignUpRequest
+	signUpErr           error
+	getUsersRequest     *pb.GetUsersRequest
+	getUsersContext     context.Context
+	getUsersResponse    *pb.GetUsersResponse
+	getUsersErr         error
+	updateRequest       *pb.UpdateUserRequest
+	updateContext       context.Context
+	updateErr           error
 }
 
 func (s *authifyServiceClientStub) Login(_ context.Context, req *pb.LoginRequest, _ ...grpc.CallOption) (*pb.LoginResponse, error) {
@@ -142,4 +146,10 @@ func TestWithUserIDMetadataLeavesContextWithoutIdentityUnchanged(t *testing.T) {
 	if _, ok := metadata.FromOutgoingContext(got); ok {
 		t.Error("context without user ID unexpectedly has outgoing metadata")
 	}
+}
+
+func (s *authifyServiceClientStub) GetCurrentUser(ctx context.Context, _ *emptypb.Empty, _ ...grpc.CallOption) (*pb.User, error) {
+	s.currentUserContext = ctx
+	s.currentUserCalls++
+	return s.currentUserResponse, s.currentUserErr
 }

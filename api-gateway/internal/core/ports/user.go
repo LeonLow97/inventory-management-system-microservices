@@ -7,6 +7,7 @@ import (
 )
 
 type UserOutbound interface {
+	GetCurrentUser(ctx context.Context) (*domain.User, error)
 	Login(ctx context.Context, req domain.User) (*domain.User, string, error)
 	SignUp(ctx context.Context, req domain.User) error
 

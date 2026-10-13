@@ -47,6 +47,7 @@ func TestRegisterRoutes(t *testing.T) {
 		{name: "readiness route", method: http.MethodGet, target: "/health/readiness", wantStatus: http.StatusOK},
 		{name: "login route is registered", method: http.MethodPost, target: "/api/v1/login", wantStatus: http.StatusBadRequest},
 		{name: "users route requires authentication", method: http.MethodGet, target: "/api/v1/users", wantStatus: http.StatusUnauthorized},
+		{name: "current user requires authentication", method: http.MethodGet, target: "/api/v1/users/me", wantStatus: http.StatusUnauthorized},
 		{name: "update route requires authentication", method: http.MethodPatch, target: "/api/v1/users/me", wantStatus: http.StatusUnauthorized},
 		{name: "unknown route remains not found", method: http.MethodGet, target: "/missing", wantStatus: http.StatusNotFound},
 	}

@@ -7,6 +7,7 @@ import (
 )
 
 type UserRepository interface {
+	GetUserByID(ctx context.Context, userID int64) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUsers(ctx context.Context, limit int64, userCursor domain.UserCursor) ([]domain.User, error)
 	EmailExists(ctx context.Context, email string) (bool, error)

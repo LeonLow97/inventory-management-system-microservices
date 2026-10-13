@@ -230,3 +230,7 @@ func TestUserHandlerUpdateUser(t *testing.T) {
 		})
 	}
 }
+
+func (s *userServiceStub) GetCurrentUser(context.Context) (*domain.User, error) {
+	return s.loginUser, s.loginErr
+}

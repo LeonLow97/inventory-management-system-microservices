@@ -9,6 +9,7 @@ import (
 	"github.com/LeonLow97/internal/core/usecases"
 	"github.com/LeonLow97/internal/delivery/grpc/contextstore"
 	grpcerror "github.com/LeonLow97/internal/delivery/grpc/errors"
+	"github.com/LeonLow97/internal/pkg/utils"
 	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -21,6 +22,24 @@ func NewUserHandler(s usecases.Service) *userHandler {
 	return &userHandler{
 		service: s,
 	}
+}
+
+func (h *userHandler) GetCurrentUser(ctx context.Context, _ *empty.Empty) (*pb.User, error) {
+	userID, err := contextstore.UserIDFromContext(ctx)
+	if err != nil || userID <= 0 {
+		return nil, grpcerror.ECUnauthorized.GRPCError(err)
+	}
+	user, err := h.service.GetCurrentUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, coreerrors.ErrUserNotFound) || errors.Is(err, coreerrors.ErrInactiveUser) || errors.Is(err, coreerrors.ErrInvalidCredentials) {
+			return nil, grpcerror.ECUnauthorized.GRPCError(err)
+		}
+		return nil, grpcerror.ECInternalServerError.GRPCError(err)
+	}
+	return &pb.User{
+		ID: user.ID, FirstName: utils.FromPointer(user.FirstName),
+		LastName: utils.FromPointer(user.LastName), Email: user.Email, Active: user.Active,
+	}, nil
 }
 
 func (h *userHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {

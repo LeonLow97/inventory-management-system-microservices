@@ -12,6 +12,19 @@ import (
 	"github.com/LeonLow97/internal/pkg/utils"
 )
 
+func (r *UserRepository) GetUserByID(ctx context.Context, userID int64) (*domain.User, error) {
+	const query = `SELECT id, email, first_name, last_name, active, created_at, updated_at
+        FROM users WHERE id = $1`
+	var user domain.User
+	if err := r.db.GetContext(ctx, &user, query, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, coreerrors.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `
 		SELECT 

@@ -13,6 +13,7 @@ The API Gateway exposes REST endpoints and forwards user operations to Authify S
 | POST | `/api/v1/signup` | Creates a user account. |
 | POST | `/api/v1/logout` | Expires the JWT cookie in the browser. |
 | GET | `/api/v1/users` | Lists users. Requires a valid JWT cookie and an administrator account. |
+| GET | `/api/v1/users/me` | Reads the authenticated user profile from the database. Requires a valid JWT cookie. |
 | PATCH | `/api/v1/users/me` | Updates the authenticated user's supported fields. Requires a valid JWT cookie. |
 
 All requests pass through the gateway's global request logging, panic recovery, and HTTP metrics middleware. The diagrams below focus on each endpoint's main flow.
@@ -109,3 +110,7 @@ flowchart TD
     K -->|error| L[Map gRPC error to HTTP response]
     K -->|success| M[Return 204 No Content]
 ```
+
+### `GET /api/v1/users/me`
+
+The authentication middleware verifies the cookie and extracts its user ID. The gateway forwards that identity as gRPC metadata; Authify Service reads the user by ID from PostgreSQL and rejects missing or inactive users. The response contains `first_name`, `last_name`, and `email` with the same profile shape as login. The endpoint accepts no user ID from the caller and sets `Cache-Control: no-store`. The frontend uses this endpoint to restore authentication after a page refresh.

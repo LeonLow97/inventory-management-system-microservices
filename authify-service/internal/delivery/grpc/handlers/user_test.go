@@ -14,18 +14,20 @@ import (
 )
 
 type userServiceStub struct {
-	loginUser   *domain.User
-	loginToken  string
-	loginErr    error
-	loginInput  domain.LoginInput
-	loginCalls  int
-	signUpErr   error
-	signUpInput domain.SignUpInput
-	signUpCalls int
-	users       []domain.User
-	nextCursor  string
-	getUsersErr error
-	getUsersReq struct {
+	currentUserID    int64
+	currentUserCalls int
+	loginUser        *domain.User
+	loginToken       string
+	loginErr         error
+	loginInput       domain.LoginInput
+	loginCalls       int
+	signUpErr        error
+	signUpInput      domain.SignUpInput
+	signUpCalls      int
+	users            []domain.User
+	nextCursor       string
+	getUsersErr      error
+	getUsersReq      struct {
 		adminUserID int64
 		limit       int64
 		cursor      string
@@ -251,4 +253,10 @@ func TestUserHandlerUpdateUser(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (s *userServiceStub) GetCurrentUser(_ context.Context, userID int64) (*domain.User, error) {
+	s.currentUserID = userID
+	s.currentUserCalls++
+	return s.loginUser, s.loginErr
 }

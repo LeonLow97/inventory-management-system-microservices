@@ -9,6 +9,7 @@ Authify is a production-ready authentication and authorization microservice desi
 - [System Architecture](#system-architecture)
   - [High Level](#high-level)
 - [Project Setup](#project-setup)
+  - [Frontend](#frontend)
   - [AWS Deployment](#aws-deployment)
   - [k6 Load Testing](#k6-load-testing)
 
@@ -29,6 +30,19 @@ Choose an environment and follow its setup guide:
 - [Run the services on Kubernetes with Kind](docs/setup/k8s-kind.md)
 
 The guides use Make targets from the repository root.
+
+## Frontend
+
+The [React frontend](frontend/README.md) uses TypeScript, Vite, and Material UI. It provides email/password login and a protected home page displaying the user's database profile.
+
+Start the backend using a setup guide above, then run:
+
+```sh
+npm --prefix frontend ci
+npm --prefix frontend run dev
+```
+
+Open `http://localhost:3000`.
 
 ## AWS Deployment
 

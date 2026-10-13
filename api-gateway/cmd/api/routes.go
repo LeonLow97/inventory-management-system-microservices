@@ -45,6 +45,7 @@ func (app *application) registerRoutes(logger ports.Logger) *gin.Engine {
 		app.cfg.AuthJWTToken.Secret,
 	))
 	authenticatedUserGroup.GET("/users", app.UserHandler.GetUsers)
+	authenticatedUserGroup.GET("/users/me", app.UserHandler.GetCurrentUser)
 	authenticatedUserGroup.PATCH("/users/me", app.UserHandler.UpdateUser)
 
 	return router

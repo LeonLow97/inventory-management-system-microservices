@@ -14,6 +14,8 @@ func testLogger() ports.Logger {
 }
 
 type userRepositoryStub struct {
+	currentUserID      int64
+	currentUserCalls   int
 	getUserByEmailUser *domain.User
 	getUserByEmailErr  error
 	getUsersUsers      []domain.User
@@ -86,3 +88,9 @@ func (*cacheStub) Delete(context.Context, string) error { return nil }
 func (*cacheStub) Exists(context.Context, string) (bool, error) { return false, nil }
 
 func (*cacheStub) Ping(context.Context) error { return nil }
+
+func (s *userRepositoryStub) GetUserByID(_ context.Context, userID int64) (*domain.User, error) {
+	s.currentUserID = userID
+	s.currentUserCalls++
+	return s.getUserByEmailUser, s.getUserByEmailErr
+}

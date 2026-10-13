@@ -35,7 +35,18 @@ func NewUserHandler(jwtConfig JWTConfig, userService usecases.User, logger ports
 	}
 }
 
+func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	user, err := h.UserService.GetCurrentUser(c.Request.Context())
+	if err != nil {
+		_ = h.RespondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.ToLoginResponse(user))
+}
+
 func (h *UserHandler) Login(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	// Deserialize request body and validate request fields
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

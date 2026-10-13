@@ -7,8 +7,10 @@ import (
 	pb "github.com/LeonLow97/authify/grpc-proto/pb"
 	"github.com/LeonLow97/internal/contextstore"
 	"github.com/LeonLow97/internal/core/domain"
+	coreerrors "github.com/LeonLow97/internal/core/errors"
 	"github.com/LeonLow97/internal/core/ports"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const requestIDMetadataKey = "x-request-id"
@@ -21,6 +23,21 @@ func NewUserOutbound(conn pb.AuthifyServiceClient) ports.UserOutbound {
 	return &userOutbound{
 		conn: conn,
 	}
+}
+
+func (r *userOutbound) GetCurrentUser(ctx context.Context) (*domain.User, error) {
+	userID, ok := contextstore.UserIDFromContext(ctx)
+	if !ok || userID <= 0 {
+		return nil, coreerrors.New(coreerrors.KindUnauthenticated, "Authentication required", nil)
+	}
+	resp, err := r.conn.GetCurrentUser(withUserIDMetadata(withRequestIDMetadata(ctx)), &emptypb.Empty{})
+	if err != nil {
+		return nil, mapGRPCError(err)
+	}
+	return &domain.User{
+		ID: resp.ID, FirstName: resp.FirstName, LastName: resp.LastName,
+		Email: resp.Email, Active: resp.Active,
+	}, nil
 }
 
 func (r *userOutbound) Login(ctx context.Context, req domain.User) (*domain.User, string, error) {

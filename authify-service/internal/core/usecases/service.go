@@ -8,6 +8,7 @@ import (
 )
 
 type Service interface {
+	GetCurrentUser(ctx context.Context, userID int64) (*domain.User, error)
 	Login(ctx context.Context, loginInput domain.LoginInput) (*domain.User, string, error)
 	SignUp(ctx context.Context, signupInput domain.SignUpInput) error
 
